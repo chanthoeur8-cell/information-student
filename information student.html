@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School Floor — Student Management System</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f5f4f0;
+      --surface: #ffffff;
+      --surface2: #f0efe9;
+      --border: rgba(0,0,0,0.1);
+      --border2: rgba(0,0,0,0.18);
+      --text: #1a1a18;
+      --text2: #5e5d57;
+      --text3: #9a998f;
+      --blue: #185FA5;
+      --blue-bg: #E6F1FB;
+      --blue-text: #0C447C;
+      --green: #3B6D11;
+      --green-bg: #EAF3DE;
+      --green-text: #27500A;
+      --red: #A32D2D;
+      --red-bg: #FCEBEB;
+      --red-text: #791F1F;
+      --pink: #993556;
+      --pink-bg: #FBEAF0;
+      --pink-text: #72243E;
+      --amber: #854F0B;
+      --amber-bg: #FAEEDA;
+      --teal: #0F6E56;
+      --teal-bg: #E1F5EE;
+      --teal-text: #085041;
+      --purple: #534AB7;
+      --purple-bg: #EEEDFE;
+      --purple-text: #26215C;
+      --radius: 10px;
+      --radius-lg: 14px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+
+    /* LAYOUT */
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 240px; background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+      overflow-y: auto;
+    }
+    .sidebar-logo { padding: 18px 16px 14px; border-bottom: 1px solid var(--border); }
+    .sidebar-logo .logo-icon {
+      width: 36px; height: 36px; background: var(--blue); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 8px;
+    }
+    .sidebar-logo h1 { font-size: 14px; font-weight: 600; }
+    .sidebar-logo p  { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .sidebar-nav { padding: 8px; flex: 1; }
+
+    /* Building section in sidebar */
+    .building-section { margin-bottom: 4px; }
+    .building-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text3); padding: 10px 10px 4px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 9px; padding: 8px 10px;
+      border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--text2);
+      transition: all 0.15s; margin-bottom: 1px; border: none; background: transparent; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: var(--blue-bg); color: var(--blue-text); font-weight: 500; }
+    .nav-icon { font-size: 13px; width: 18px; text-align: center; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto; background: var(--blue); color: #fff;
+      font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 20px; min-width: 16px; text-align: center;
+    }
+    .nav-badge.green { background: var(--green); }
+    .nav-badge.purple { background: var(--purple); }
+    .nav-badge.red { background: var(--red); }
+    .sidebar-footer { padding: 10px 16px; border-top: 1px solid var(--border); font-size: 10px; color: var(--text3); }
+    .sidebar-divider { height: 1px; background: var(--border); margin: 6px 10px; }
+
+    /* SPECIAL room badge */
+    .nav-item.special-room { border-left: 3px solid var(--amber); }
+    .nav-item.special-room.active { background: var(--amber-bg); color: var(--amber); border-left-color: var(--amber); }
+
+    .main { margin-left: 240px; padding: 24px 24px 40px; flex: 1; }
+
+    /* PAGE HEADER */
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+    .page-header-left h2 { font-size: 20px; font-weight: 600; }
+    .page-header-left .breadcrumb { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .page-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* SECTIONS */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* STATS */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 14px 16px; }
+    .stat-card .s-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); font-weight: 500; margin-bottom: 5px; }
+    .stat-card .s-num { font-size: 28px; font-weight: 600; line-height: 1; }
+    .stat-card .s-sub { font-size: 10px; color: var(--text3); margin-top: 3px; }
+    .stat-card.blue .s-num { color: var(--blue); }
+    .stat-card.pink .s-num { color: var(--pink); }
+    .stat-card.green .s-num { color: var(--green); }
+    .stat-card.amber .s-num { color: var(--amber); }
+    .stat-card.purple .s-num { color: var(--purple); }
+
+    /* CARD */
+    .card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
+    .card-header h3 { font-size: 14px; font-weight: 600; }
+    .card-body { padding: 16px 18px; }
+
+    /* TOOLBAR */
+    .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+
+    /* INPUTS */
+    input[type="text"], input[type="password"], input[type="date"], select, textarea {
+      font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--surface2);
+      border: 1px solid var(--border2); border-radius: 8px; padding: 7px 11px;
+      color: var(--text); outline: none; transition: border 0.15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--blue); background: #fff; }
+    input.search { flex: 1; min-width: 150px; }
+    select { cursor: pointer; }
+
+    /* BUTTONS */
+    .btn {
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 7px 14px;
+      border-radius: 8px; cursor: pointer; border: 1px solid var(--border2); background: var(--surface);
+      color: var(--text); transition: all 0.15s; white-space: nowrap;
+    }
+    .btn:hover { background: var(--surface2); }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-primary:hover { background: #0C447C; }
+    .btn-danger  { background: var(--red);  color: #fff; border-color: var(--red); }
+    .btn-danger:hover  { background: var(--red-text); }
+    .btn-teal    { background: var(--teal); color: #fff; border-color: var(--teal); }
+    .btn-teal:hover    { background: var(--teal-text); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead tr { background: var(--surface2); }
+    th { text-align: left; padding: 9px 13px; color: var(--text3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+    td { padding: 10px 13px; border-top: 1px solid var(--border); color: var(--text); }
+    tbody tr:hover td { background: #fafaf7; }
+    .empty-row td { text-align: center; color: var(--text3); padding: 28px; }
+
+    /* BADGES */
+    .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-male    { background: var(--blue-bg);   color: var(--blue-text); }
+    .badge-female  { background: var(--pink-bg);   color: var(--pink-text); }
+    .badge-active  { background: var(--green-bg);  color: var(--green-text); }
+    .badge-removed { background: var(--red-bg);    color: var(--red-text); }
+    .badge-room    { background: var(--amber-bg);  color: var(--amber); }
+    .badge-special { background: var(--purple-bg); color: var(--purple-text); }
+
+    /* AVATAR */
+    .avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; flex-shrink: 0; }
+    .avatar-m { background: var(--blue-bg);  color: var(--blue-text); }
+    .avatar-f { background: var(--pink-bg);  color: var(--pink-text); }
+
+    /* LOG */
+    .log-item { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--border); }
+    .log-item:last-child { border: none; }
+    .log-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+    .log-dot-add { background: var(--green-bg); }
+    .log-dot-del { background: var(--red-bg); }
+    .log-name  { font-weight: 500; font-size: 13px; }
+    .log-meta  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .log-time  { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: 'DM Mono', monospace; }
+
+    /* OVERVIEW BUILDING CARD */
+    .building-overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 14px; }
+    .room-card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; cursor: pointer; transition: box-shadow 0.15s; }
+    .room-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.12); }
+    .room-card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .room-card-header h4 { font-size: 13px; font-weight: 600; }
+    .room-bar { display: flex; height: 4px; border-radius: 4px; overflow: hidden; margin: 8px 16px 0; }
+    .room-bar .bar-m { background: var(--blue); }
+    .room-bar .bar-f { background: var(--pink); }
+    .room-student-list { padding: 0 16px 12px; max-height: 160px; overflow-y: auto; }
+    .room-student-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .room-student-row:last-child { border: none; }
+
+    /* MULTI ADD TABLE */
+    .multi-add-table { width: 100%; border-collapse: collapse; }
+    .multi-add-table th { background: var(--surface2); text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; }
+    .multi-add-table td { padding: 5px 5px; border-top: 1px solid var(--border); }
+    .multi-add-table input, .multi-add-table select { font-size: 12px; padding: 5px 8px; width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; }
+    .multi-add-table input:focus, .multi-add-table select:focus { border-color: var(--blue); background: #fff; }
+    .row-num { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; text-align: center; width: 30px; }
+    .del-row-btn { background: none; border: none; cursor: pointer; color: var(--red); font-size: 16px; padding: 2px 6px; border-radius: 5px; }
+    .del-row-btn:hover { background: var(--red-bg); }
+
+    /* MODAL */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,18,0.5); z-index: 200; align-items: center; justify-content: center; }
+    .overlay.open { display: flex; }
+    .modal { background: var(--surface); border-radius: var(--radius-lg); box-shadow: 0 8px 32px rgba(0,0,0,0.18); padding: 22px; width: 760px; max-width: 97vw; max-height: 90vh; overflow-y: auto; }
+    .modal-sm { width: 400px; }
+    .modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+    .form-row { margin-bottom: 12px; }
+    .form-row label { display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 4px; }
+    .form-row input, .form-row select { width: 100%; }
+    .form-row .hint { font-size: 11px; color: var(--text3); margin-top: 3px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+    /* SETTINGS */
+    .tg-status-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+    .tg-ok  { background: var(--green-bg); color: var(--green-text); }
+    .tg-err { background: var(--red-bg);   color: var(--red-text); }
+
+    /* TOAST */
+    #toast {
+      position: fixed; bottom: 22px; right: 22px; background: var(--text); color: #fff;
+      padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; z-index: 999;
+      transform: translateY(80px); opacity: 0; transition: all 0.25s; max-width: 300px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .sidebar { width: 56px; }
+      .sidebar .sidebar-logo h1, .sidebar .sidebar-logo p, .nav-item span:not(.nav-icon), .sidebar-footer, .building-label { display: none; }
+      .nav-item { justify-content: center; padding: 10px; }
+      .main { margin-left: 56px; padding: 14px; }
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 8px; }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🏫</div>
+      <h1>Floor Manager</h1>
+      <p>School Student System</p>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav">
+      <!-- Dynamically built -->
+    </nav>
+    <div class="sidebar-footer">School Floor System v3.0</div>
+  </aside>
+
+  <main class="main">
+
+    <!-- OVERVIEW -->
+    <div id="tab-overview" class="section active">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>📊 Overview</h2>
+          <div class="breadcrumb">All buildings · All floors · All rooms</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-teal" onclick="sendTelegramSummary()">📤 Send summary to Telegram</button>
+        </div>
+      </div>
+      <div class="stats-grid" id="overview-stats"></div>
+      <div id="overview-buildings"></div>
+    </div>
+
+    <!-- ROOM PAGE (dynamic, reused for every room) -->
+    <div id="tab-room" class="section">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2 id="room-title">Room</h2>
+          <div class="breadcrumb" id="room-breadcrumb"></div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary" onclick="openAddModal()">+ Add students</button>
+          <button class="btn btn-teal" onclick="sendRoomSummary()">📤 Send to Telegram</button>
+        </div>
+      </div>
+      <div class="stats-grid" id="room-stats"></div>
+      <div class="card">
+        <div class="toolbar">
+          <input type="text" class="search" id="search-input" placeholder="🔍  Search by name or ID…" oninput="renderRoomTable()" />
+          <select id="filter-sex" onchange="renderRoomTable()">
+            <option value="">All sexes</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+          </select>
+          <select id="filter-status" onchange="renderRoomTable()">
+            <option value="active">Active only</option>
+            <option value="all">All students</option>
+            <option value="deleted">Removed only</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Student ID</th><th>Full name</th><th>Sex</th>
+                <th>Date added</th><th>Status</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="room-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOG -->
+    <div id="tab-log" class="section">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>📋 Activity log</h2>
+          <div class="breadcrumb">All events recorded automatically</div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-teal" onclick="sendTelegramSummary()">📤 Send summary to Telegram</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>All activity</h3>
+          <span id="log-count-text" style="font-size:12px;color:var(--text3);">0 events</span>
+        </div>
+        <div class="card-body" id="log-list" style="min-height:100px;"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="tab-settings" class="section">
+      <div class="page-header">
+        <div class="page-header-left"><h2>⚙️ Settings</h2><div class="breadcrumb">Telegram & data</div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h3>📱 Telegram notifications</h3></div>
+        <div class="card-body">
+          <div class="form-row">
+            <label>Bot token</label>
+            <input type="text" id="tg-token" placeholder="123456789:ABCdefGHI…" style="max-width:420px;width:100%;" />
+            <div class="hint">Get from @BotFather → /newbot</div>
+          </div>
+          <div class="form-row">
+            <label>Chat ID (group or channel)</label>
+            <input type="text" id="tg-chatid" placeholder="-100123456789" style="max-width:420px;width:100%;" />
+            <div class="hint">Add @userinfobot to your group to find Chat ID</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;">
+            <button class="btn btn-primary" onclick="saveTgSettings()">Save settings</button>
+            <button class="btn" onclick="testTelegram()">🧪 Test message</button>
+            <span id="tg-status" style="display:none;" class="tg-status-pill"></span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>💾 Data management</h3></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">
+            Student data is saved automatically in your browser (localStorage). It stays when you close and reopen the browser.
+          </p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="exportData()">📥 Export JSON backup</button>
+            <button class="btn" onclick="document.getElementById('import-file').click()">📤 Import JSON backup</button>
+            <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)" />
+            <button class="btn btn-danger btn-sm" onclick="clearAllData()" style="margin-left:auto;">🗑 Clear all data</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ADD STUDENTS MODAL (multi-row) -->
+<div class="overlay" id="add-modal">
+  <div class="modal">
+    <h3>➕ Add students to <span id="modal-room-name"></span></h3>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Fill in one or more rows. Click "+ Add row" to add more students at once.</p>
+    <div style="overflow-x:auto;">
+      <table class="multi-add-table">
+        <thead>
+          <tr>
+            <th style="width:30px;">#</th>
+            <th>Full name *</th>
+            <th>Student ID *</th>
+            <th>Sex *</th>
+            <th style="width:36px;"></th>
+          </tr>
+        </thead>
+        <tbody id="add-rows-tbody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-sm" onclick="addInputRow()">+ Add row</button>
+    </div>
+    <div id="add-error" style="display:none;margin-top:10px;padding:8px 12px;background:var(--red-bg);color:var(--red-text);border-radius:8px;font-size:12px;"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddStudents()">Add students</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="overlay" id="del-modal">
+  <div class="modal modal-sm">
+    <h3>Remove student</h3>
+    <p id="del-msg" style="font-size:13px;color:var(--text2);line-height:1.6;"></p>
+    <div style="margin-top:10px;padding:9px 12px;background:var(--red-bg);border-radius:8px;font-size:12px;color:var(--red-text);">
+      This action is logged with date and time. The record is kept for history.
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeDelModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Yes, remove</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+// BUILDING & ROOM STRUCTURE
+// ════════════════════════════════════════
+const BUILDINGS = [
+  {
+    id: 'old', name: 'អគារចាស់', nameEn: 'Old Building',
+    floors: [
+      {
+        id: 'old-f1', name: 'ជាន់ទី១', nameEn: 'Floor 1',
+        rooms: [
+          {id:'old-f1-r1', name:'បន្ទប់ ១', nameEn:'Room 1', type:'class'},
+          {id:'old-f1-r2', name:'បន្ទប់ ២', nameEn:'Room 2', type:'class'},
+          {id:'old-f1-r3', name:'បន្ទប់ ៣ (ការមើលថែ)', nameEn:'Room 3 (Care)', type:'care'},
+          {id:'old-f1-r4', name:'បន្ទប់ ៤ (ការមើលថែ)', nameEn:'Room 4 (Care)', type:'care'},
+        ]
+      },
+      {
+        id: 'old-f2', name: 'ជាន់ទី២', nameEn: 'Floor 2',
+        rooms: [
+          {id:'old-f2-r1', name:'បន្ទប់ ១', nameEn:'Room 1', type:'class'},
+          {id:'old-f2-r2', name:'បន្ទប់ ២', nameEn:'Room 2', type:'class'},
+          {id:'old-f2-r3', name:'បន្ទប់ ៣', nameEn:'Room 3', type:'class'},
+          {id:'old-f2-r4', name:'បន្ទប់ ៤', nameEn:'Room 4', type:'class'},
+        ]
+      },
+      {
+        id: 'old-f3', name: 'ជាន់ទី៣', nameEn: 'Floor 3',
+        rooms: [
+          {id:'old-f3-r1', name:'បន្ទប់ ១', nameEn:'Room 1', type:'class'},
+          {id:'old-f3-r2', name:'បន្ទប់ ២', nameEn:'Room 2', type:'class'},
+          {id:'old-f3-r3', name:'បន្ទប់ ៣', nameEn:'Room 3', type:'class'},
+          {id:'old-f3-r4', name:'បន្ទប់ ៤', nameEn:'Room 4', type:'class'},
+        ]
+      },
+    ]
+  },
+  {
+    id: 'new', name: 'អគារថ្មី', nameEn: 'New Building',
+    floors: [
+      {
+        id: 'new-f1', name: 'ជាន់ទី១', nameEn: 'Floor 1',
+        rooms: [] // no classrooms
+      },
+      {
+        id: 'new-f2', name: 'ជាន់ទី២', nameEn: 'Floor 2',
+        rooms: [
+          {id:'new-f2-r1', name:'បន្ទប់ ១', nameEn:'Room 1', type:'class'},
+          {id:'new-f2-r2', name:'បន្ទប់ ២', nameEn:'Room 2', type:'class'},
+        ]
+      },
+      {
+        id: 'new-f3', name: 'ជាន់ទី៣', nameEn: 'Floor 3',
+        rooms: [
+          {id:'new-f3-r1', name:'បន្ទប់ ១', nameEn:'Room 1', type:'class'},
+          {id:'new-f3-r2', name:'បន្ទប់ ២', nameEn:'Room 2', type:'class'},
+        ]
+      },
+    ]
+  },
+];
+
+// ════════════════════════════════════════
+// DATA (persisted via localStorage)
+// ════════════════════════════════════════
+function loadData() {
+  try {
+    const raw = localStorage.getItem('schoolData_v3');
+    if(raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { students: {}, activityLog: [] };
+}
+function saveData() {
+  localStorage.setItem('schoolData_v3', JSON.stringify({ students, activityLog }));
+}
+
+let { students, activityLog } = loadData();
+// students = { roomId: [ {id, name, sex, dateAdded, status, dateRemoved?}, ... ] }
+
+let tgToken  = localStorage.getItem('tgToken')  || '8649087840:AAFc_lAZoOf53k7768PHzdKkZpkMPNPp-70';
+let tgChatId = localStorage.getItem('tgChatId') || '1346632543';
+let currentRoomId = null;
+let pendingDelKey = null; // {roomId, studentId}
+
+// ════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════
+function today()   { return new Date().toISOString().slice(0,10); }
+function nowTime() { return new Date().toTimeString().slice(0,5); }
+function initials(name) { return name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+
+function getRoomStudents(roomId, status='active') {
+  const list = students[roomId] || [];
+  if(status === 'all') return list;
+  return list.filter(s => s.status === status);
+}
+
+function findRoom(roomId) {
+  for(const b of BUILDINGS) for(const f of b.floors) for(const r of f.rooms) if(r.id===roomId) return r;
+  return null;
+}
+function findFloor(roomId) {
+  for(const b of BUILDINGS) for(const f of b.floors) for(const r of f.rooms) if(r.id===roomId) return f;
+  return null;
+}
+function findBuilding(roomId) {
+  for(const b of BUILDINGS) for(const f of b.floors) for(const r of f.rooms) if(r.id===roomId) return b;
+  return null;
+}
+
+function toast(msg, type='default') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = type==='error' ? '#A32D2D' : type==='success' ? '#3B6D11' : '#1a1a18';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════
+// SIDEBAR BUILD
+// ════════════════════════════════════════
+function buildSidebar() {
+  const nav = document.getElementById('sidebar-nav');
+  let html = '';
+
+  html += `
+    <button class="nav-item active" id="nav-overview" onclick="switchTab('overview',this)">
+      <span class="nav-icon">📊</span><span>Overview</span>
+      <span class="nav-badge" id="nav-total">0</span>
+    </button>`;
+
+  BUILDINGS.forEach(b => {
+    html += `<div class="building-section">
+      <div class="building-label">${b.nameEn}</div>`;
+    b.floors.forEach(f => {
+      if(f.rooms.length === 0) {
+        html += `<div class="nav-item" style="opacity:0.45;cursor:default;padding-left:18px;">
+          <span class="nav-icon">🚫</span><span>${f.nameEn} — No rooms</span>
+        </div>`;
+        return;
+      }
+      html += `<div style="padding-left:8px;margin-bottom:2px;">
+        <div style="font-size:10px;color:var(--text3);padding:4px 10px 2px;font-weight:500;">${f.nameEn}</div>`;
+      f.rooms.forEach(r => {
+        const isCare = r.type === 'care';
+        html += `<button class="nav-item ${isCare?'special-room':''}" id="nav-${r.id}" onclick="openRoom('${r.id}',this)">
+          <span class="nav-icon">${isCare?'🏥':'📚'}</span>
+          <span>${r.nameEn}</span>
+          <span class="nav-badge ${isCare?'purple':''}" id="nav-count-${r.id}">0</span>
+        </button>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+
+  html += `<div class="sidebar-divider"></div>
+    <button class="nav-item" id="nav-log" onclick="switchTab('log',this)">
+      <span class="nav-icon">📋</span><span>Activity log</span>
+      <span class="nav-badge green" id="nav-log-count">0</span>
+    </button>
+    <button class="nav-item" id="nav-settings" onclick="switchTab('settings',this)">
+      <span class="nav-icon">⚙️</span><span>Settings</span>
+    </button>`;
+
+  nav.innerHTML = html;
+  updateAllBadges();
+}
+
+function updateAllBadges() {
+  let total = 0;
+  BUILDINGS.forEach(b => b.floors.forEach(f => f.rooms.forEach(r => {
+    const c = getRoomStudents(r.id).length;
+    total += c;
+    const el = document.getElementById('nav-count-'+r.id);
+    if(el) el.textContent = c;
+  })));
+  const tot = document.getElementById('nav-total');
+  if(tot) tot.textContent = total;
+  const logBadge = document.getElementById('nav-log-count');
+  if(logBadge) logBadge.textContent = activityLog.length;
+}
+
+// ════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════
+function clearActiveNav() {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+}
+function clearActiveSections() {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+}
+
+function switchTab(tab, btn) {
+  clearActiveSections();
+  clearActiveNav();
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(btn) btn.classList.add('active');
+  else { const el=document.getElementById('nav-'+tab); if(el) el.classList.add('active'); }
+  if(tab==='overview') renderOverview();
+  if(tab==='log') renderLog();
+  if(tab==='settings') loadTgSettings();
+  currentRoomId = null;
+}
+
+function openRoom(roomId, btn) {
+  clearActiveSections();
+  clearActiveNav();
+  document.getElementById('tab-room').classList.add('active');
+  if(btn) btn.classList.add('active');
+  else { const el=document.getElementById('nav-'+roomId); if(el) el.classList.add('active'); }
+  currentRoomId = roomId;
+
+  const room     = findRoom(roomId);
+  const floor    = findFloor(roomId);
+  const building = findBuilding(roomId);
+  document.getElementById('room-title').textContent =
+    (room.type==='care'?'🏥':'📚') + ' ' + room.nameEn + ' — ' + room.name;
+  document.getElementById('room-breadcrumb').textContent =
+    building.nameEn + ' › ' + floor.nameEn + ' › ' + room.nameEn;
+  document.getElementById('modal-room-name').textContent = room.nameEn + ' (' + room.name + ')';
+
+  renderRoomStats();
+  renderRoomTable();
+}
+
+// ════════════════════════════════════════
+// OVERVIEW
+// ════════════════════════════════════════
+function renderOverview() {
+  let totalStudents = 0, totalM = 0, totalF = 0, totalRooms = 0;
+  BUILDINGS.forEach(b => b.floors.forEach(f => f.rooms.forEach(r => {
+    const a = getRoomStudents(r.id);
+    totalStudents += a.length;
+    totalM += a.filter(s=>s.sex==='M').length;
+    totalF += a.filter(s=>s.sex==='F').length;
+    totalRooms++;
+  })));
+
+  document.getElementById('overview-stats').innerHTML = `
+    <div class="stat-card"><div class="s-label">Total students</div><div class="s-num">${totalStudents}</div><div class="s-sub">all rooms</div></div>
+    <div class="stat-card blue"><div class="s-label">Male</div><div class="s-num">${totalM}</div><div class="s-sub">${totalStudents?Math.round(totalM/totalStudents*100):0}%</div></div>
+    <div class="stat-card pink"><div class="s-label">Female</div><div class="s-num">${totalF}</div><div class="s-sub">${totalStudents?Math.round(totalF/totalStudents*100):0}%</div></div>
+    <div class="stat-card green"><div class="s-label">Rooms</div><div class="s-num">${totalRooms}</div><div class="s-sub">2 buildings</div></div>
+    <div class="stat-card amber"><div class="s-label">Log events</div><div class="s-num">${activityLog.length}</div></div>
+  `;
+
+  let html = '';
+  BUILDINGS.forEach(b => {
+    html += `<h3 style="font-size:15px;font-weight:600;margin:18px 0 10px;">🏢 ${b.nameEn} (${b.name})</h3>`;
+    b.floors.forEach(f => {
+      if(!f.rooms.length) {
+        html += `<p style="font-size:12px;color:var(--text3);margin-bottom:12px;padding:10px 14px;background:var(--surface);border-radius:10px;box-shadow:var(--shadow);">
+          ${f.nameEn} — No classrooms on this floor</p>`;
+        return;
+      }
+      html += `<p style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;">${f.nameEn}</p>
+        <div class="building-overview" style="margin-bottom:18px;">`;
+      f.rooms.forEach(r => {
+        const active = getRoomStudents(r.id);
+        const m = active.filter(s=>s.sex==='M').length;
+        const fc = active.filter(s=>s.sex==='F').length;
+        const mPct = active.length ? Math.round(m/active.length*100) : 50;
+        const isCare = r.type==='care';
+        html += `<div class="room-card" onclick="openRoom('${r.id}')">
+          <div class="room-card-header">
+            <h4>${isCare?'🏥':'📚'} ${r.nameEn} <span style="font-weight:400;font-size:11px;color:var(--text3);">${r.name}</span></h4>
+            <span class="badge ${isCare?'badge-special':'badge-room'}">${active.length} students</span>
+          </div>
+          <div class="room-bar">
+            <div class="bar-m" style="width:${mPct}%;"></div>
+            <div class="bar-f" style="flex:1;background:var(--pink);"></div>
+          </div>
+          <div class="room-student-list">
+            ${active.length ? active.slice(0,8).map(s=>`
+              <div class="room-student-row">
+                <div class="avatar avatar-${s.sex.toLowerCase()}">${initials(s.name)}</div>
+                <span style="flex:1;font-size:12px;">${s.name}</span>
+                <span style="color:var(--text3);font-size:10px;font-family:'DM Mono',monospace;">${s.id}</span>
+              </div>`).join('')
+            + (active.length>8?`<div style="text-align:center;font-size:11px;color:var(--text3);padding:4px;">+${active.length-8} more…</div>`:'')
+            : '<div style="text-align:center;color:var(--text3);padding:10px;font-size:11px;">No students yet</div>'}
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+  });
+  document.getElementById('overview-buildings').innerHTML = html;
+}
+
+// ════════════════════════════════════════
+// ROOM PAGE
+// ════════════════════════════════════════
+function renderRoomStats() {
+  const roomId = currentRoomId;
+  const all    = getRoomStudents(roomId);
+  const del    = getRoomStudents(roomId, 'deleted');
+  const m = all.filter(s=>s.sex==='M').length;
+  const f = all.filter(s=>s.sex==='F').length;
+  document.getElementById('room-stats').innerHTML = `
+    <div class="stat-card"><div class="s-label">Active</div><div class="s-num">${all.length}</div></div>
+    <div class="stat-card blue"><div class="s-label">Male</div><div class="s-num">${m}</div></div>
+    <div class="stat-card pink"><div class="s-label">Female</div><div class="s-num">${f}</div></div>
+    <div class="stat-card amber"><div class="s-label">Removed</div><div class="s-num">${del.length}</div></div>
+  `;
+}
+
+function renderRoomTable() {
+  const roomId = currentRoomId;
+  const q   = (document.getElementById('search-input').value||'').toLowerCase();
+  const fs  = document.getElementById('filter-sex').value;
+  const fst = document.getElementById('filter-status').value;
+  const all = students[roomId] || [];
+
+  const list = all.filter(s => {
+    if(fst==='active'  && s.status!=='active')  return false;
+    if(fst==='deleted' && s.status!=='deleted') return false;
+    if(fs && s.sex !== fs) return false;
+    if(q && !s.name.toLowerCase().includes(q) && !s.id.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('room-tbody');
+  if(!list.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">No students found</td></tr>`;
+    return;
+  }
+  let num = 1;
+  tbody.innerHTML = list.map(s => `
+    <tr>
+      <td style="color:var(--text3);font-size:12px;font-family:'DM Mono',monospace;">${num++}</td>
+      <td><code style="font-family:'DM Mono',monospace;font-size:12px;background:var(--surface2);padding:2px 6px;border-radius:5px;">${s.id}</code></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="avatar avatar-${s.sex.toLowerCase()}">${initials(s.name)}</div>
+          <span style="font-weight:500;">${s.name}</span>
+        </div>
+      </td>
+      <td><span class="badge badge-${s.sex==='M'?'male':'female'}">${s.sex==='M'?'Male':'Female'}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);">${s.dateAdded}</td>
+      <td>
+        <span class="badge ${s.status==='active'?'badge-active':'badge-removed'}">${s.status==='active'?'Active':'Removed'}</span>
+        ${s.status==='deleted'&&s.dateRemoved?`<div style="font-size:10px;color:var(--text3);margin-top:1px;font-family:'DM Mono',monospace;">${s.dateRemoved}</div>`:''}
+      </td>
+      <td>${s.status==='active'
+        ? `<button class="btn btn-danger btn-sm" onclick="openDelModal('${roomId}','${s.id}')">Remove</button>`
+        : '<span style="color:var(--text3);font-size:12px;">—</span>'}
+      </td>
+    </tr>`).join('');
+}
+
+// ════════════════════════════════════════
+// ADD STUDENTS (multi-row)
+// ════════════════════════════════════════
+let addRowCount = 0;
+function addInputRow() {
+  addRowCount++;
+  const tbody = document.getElementById('add-rows-tbody');
+  const tr = document.createElement('tr');
+  tr.id = 'add-row-' + addRowCount;
+  tr.innerHTML = `
+    <td class="row-num">${addRowCount}</td>
+    <td><input type="text" placeholder="Student full name" data-field="name" /></td>
+    <td><input type="text" placeholder="e.g. S001" data-field="sid" /></td>
+    <td>
+      <select data-field="sex">
+        <option value="M">Male</option>
+        <option value="F">Female</option>
+      </select>
+    </td>
+    <td><button class="del-row-btn" onclick="removeInputRow(${addRowCount})" title="Remove row">×</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+function removeInputRow(n) {
+  const tr = document.getElementById('add-row-'+n);
+  if(tr) tr.remove();
+  // renumber
+  document.querySelectorAll('#add-rows-tbody tr').forEach((r,i) => {
+    const num = r.querySelector('.row-num');
+    if(num) num.textContent = i+1;
+  });
+}
+
+function openAddModal() {
+  addRowCount = 0;
+  document.getElementById('add-rows-tbody').innerHTML = '';
+  document.getElementById('add-error').style.display = 'none';
+  addInputRow(); addInputRow(); addInputRow();
+  document.getElementById('add-modal').classList.add('open');
+  setTimeout(()=>{
+    const f = document.querySelector('#add-rows-tbody input[data-field="name"]');
+    if(f) f.focus();
+  },100);
+}
+function closeAddModal() { document.getElementById('add-modal').classList.remove('open'); }
+
+function submitAddStudents() {
+  const rows = document.querySelectorAll('#add-rows-tbody tr');
+  const toAdd = [];
+  const errEl = document.getElementById('add-error');
+  errEl.style.display='none';
+  const errors = [];
+
+  rows.forEach((tr, idx) => {
+    const name = tr.querySelector('[data-field="name"]').value.trim();
+    const sid  = tr.querySelector('[data-field="sid"]').value.trim();
+    const sex  = tr.querySelector('[data-field="sex"]').value;
+    if(!name && !sid) return; // skip empty rows
+    if(!name) { errors.push(`Row ${idx+1}: Missing name`); return; }
+    if(!sid)  { errors.push(`Row ${idx+1}: Missing ID`); return; }
+    // Check duplicate across all rooms
+    let dupFound = false;
+    for(const rId in students) {
+      if(students[rId].find(s=>s.id===sid)) { errors.push(`Row ${idx+1}: ID "${sid}" already exists`); dupFound=true; break; }
+    }
+    if(!dupFound) toAdd.push({name, id:sid, sex});
+  });
+
+  if(errors.length) {
+    errEl.textContent = errors.join(' · ');
+    errEl.style.display='block';
+    return;
+  }
+  if(!toAdd.length) { errEl.textContent='Please fill at least one row'; errEl.style.display='block'; return; }
+
+  const roomId = currentRoomId;
+  if(!students[roomId]) students[roomId] = [];
+  const dateAdded = today();
+  const time = nowTime();
+  const room = findRoom(roomId);
+  const floor = findFloor(roomId);
+  const building = findBuilding(roomId);
+
+  toAdd.forEach(s => {
+    const student = {id:s.id, name:s.name, sex:s.sex, dateAdded, status:'active'};
+    students[roomId].push(student);
+    activityLog.push({type:'add', id:s.id, name:s.name, sex:s.sex, roomId, roomName:room.nameEn, floorName:floor.nameEn, buildingName:building.nameEn, date:dateAdded, time});
+  });
+
+  saveData();
+  closeAddModal();
+  renderRoomStats();
+  renderRoomTable();
+  renderOverview();
+  updateAllBadges();
+  toast(`✅ ${toAdd.length} student${toAdd.length>1?'s':''} added`, 'success');
+  sendTelegramBulkAdd(toAdd, room, floor, building, dateAdded);
+}
+
+// ════════════════════════════════════════
+// DELETE
+// ════════════════════════════════════════
+function openDelModal(roomId, studentId) {
+  pendingDelKey = {roomId, studentId};
+  const s = (students[roomId]||[]).find(x=>x.id===studentId);
+  const room = findRoom(roomId);
+  document.getElementById('del-msg').innerHTML =
+    `Remove <strong>${s.name}</strong> (${s.id}) from <strong>${room.nameEn}</strong>?<br>
+     Sex: ${s.sex==='M'?'Male':'Female'} · Added: ${s.dateAdded}`;
+  document.getElementById('del-modal').classList.add('open');
+}
+function closeDelModal() { document.getElementById('del-modal').classList.remove('open'); pendingDelKey=null; }
+
+function confirmDelete() {
+  if(!pendingDelKey) return;
+  const {roomId, studentId} = pendingDelKey;
+  const s = (students[roomId]||[]).find(x=>x.id===studentId);
+  s.status = 'deleted';
+  s.dateRemoved = today();
+  const time = nowTime();
+  const room = findRoom(roomId);
+  const floor = findFloor(roomId);
+  const building = findBuilding(roomId);
+  activityLog.push({type:'del', id:s.id, name:s.name, sex:s.sex, roomId, roomName:room.nameEn, floorName:floor.nameEn, buildingName:building.nameEn, date:s.dateRemoved, time});
+  saveData();
+  closeDelModal();
+  renderRoomStats();
+  renderRoomTable();
+  renderOverview();
+  updateAllBadges();
+  toast(`🚫 ${s.name} removed`, 'default');
+  sendTelegramRemove(s, room, floor, building);
+}
+
+// ════════════════════════════════════════
+// LOG
+// ════════════════════════════════════════
+function renderLog() {
+  const list = document.getElementById('log-list');
+  document.getElementById('log-count-text').textContent = activityLog.length + ' events';
+  if(!activityLog.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text3);padding:28px;">No activity recorded yet</div>';
+    return;
+  }
+  list.innerHTML = [...activityLog].reverse().map(e => `
+    <div class="log-item">
+      <div class="log-dot log-dot-${e.type}">${e.type==='add'?'✅':'🚫'}</div>
+      <div style="flex:1;">
+        <div class="log-name">${e.name} <span style="font-weight:400;color:var(--text3);font-size:12px;">(${e.id})</span></div>
+        <div class="log-meta">
+          ${e.buildingName} › ${e.floorName} › ${e.roomName} ·
+          ${e.sex==='M'?'Male':'Female'} ·
+          <span class="badge ${e.type==='add'?'badge-active':'badge-removed'}" style="font-size:10px;padding:1px 6px;">
+            ${e.type==='add'?'Added':'Removed'}
+          </span>
+        </div>
+        <div class="log-time">${e.date} at ${e.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════
+function loadTgSettings() {
+  document.getElementById('tg-token').value  = tgToken;
+  document.getElementById('tg-chatid').value = tgChatId;
+}
+function saveTgSettings() {
+  tgToken  = document.getElementById('tg-token').value.trim();
+  tgChatId = document.getElementById('tg-chatid').value.trim();
+  localStorage.setItem('tgToken',  tgToken);
+  localStorage.setItem('tgChatId', tgChatId);
+  const st = document.getElementById('tg-status');
+  st.style.display='inline-block';
+  st.className = 'tg-status-pill ' + (tgToken&&tgChatId?'tg-ok':'tg-err');
+  st.textContent = tgToken&&tgChatId ? '✅ Saved' : '❌ Fill both fields';
+  setTimeout(()=>st.style.display='none', 3000);
+  if(tgToken&&tgChatId) toast('Telegram settings saved', 'success');
+}
+
+// ════════════════════════════════════════
+// DATA EXPORT / IMPORT
+// ════════════════════════════════════════
+function exportData() {
+  const blob = new Blob([JSON.stringify({students, activityLog}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `school_backup_${today()}.json`;
+  a.click();
+  toast('Backup exported', 'success');
+}
+function importData(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(!data.students) { toast('Invalid backup file', 'error'); return; }
+      students = data.students;
+      activityLog = data.activityLog || [];
+      saveData();
+      buildSidebar();
+      renderOverview();
+      toast('Data imported successfully', 'success');
+    } catch(err) { toast('Failed to parse file', 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+function clearAllData() {
+  if(!confirm('Clear ALL student data and activity log? This cannot be undone.')) return;
+  students = {};
+  activityLog = [];
+  saveData();
+  buildSidebar();
+  renderOverview();
+  toast('All data cleared');
+}
+
+// ════════════════════════════════════════
+// TELEGRAM HELPERS
+// ════════════════════════════════════════
+function pad(str, len) {
+  str = String(str);
+  if(str.length >= len) return str.slice(0,len);
+  return str + ' '.repeat(len - str.length);
+}
+function buildTable(headers, rows) {
+  const widths = headers.map((h,i) => rows.reduce((m,r) => Math.max(m, String(r[i]||'').length), h.length));
+  const top  = '┌' + widths.map(w=>'─'.repeat(w+2)).join('┬') + '┐';
+  const mid  = '├' + widths.map(w=>'─'.repeat(w+2)).join('┼') + '┤';
+  const bot  = '└' + widths.map(w=>'─'.repeat(w+2)).join('┴') + '┘';
+  const fmtRow = cells => '│' + cells.map((c,i)=>' '+pad(c,widths[i])+' ').join('│') + '│';
+  return [top, fmtRow(headers), mid, ...rows.map(r=>fmtRow(r.map(String))), bot].join('\n');
+}
+
+async function tgSend(text) {
+  if(!tgToken || !tgChatId) {
+    toast('⚠️ Telegram not configured — go to Settings', 'error');
+    return {ok:false, description:'Not configured'};
+  }
+  try {
+    const res = await fetch('https://api.telegram.org/bot' + tgToken + '/sendMessage', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({chat_id: tgChatId, text: text, parse_mode: 'HTML'})
+    });
+    const data = await res.json();
+    if(!data.ok) {
+      console.error('Telegram error:', data);
+      toast('❌ Telegram: ' + (data.description || 'Unknown error'), 'error');
+    }
+    return data;
+  } catch(e) {
+    console.error('Telegram fetch error:', e);
+    toast('❌ Network error — check internet connection', 'error');
+    return {ok:false, description: e.message};
+  }
+}
+
+async function sendTelegramBulkAdd(toAdd, room, floor, building, dateAdded) {
+  if(!tgToken||!tgChatId) return;
+  const roomStudents = getRoomStudents(room.id);
+  const m = roomStudents.filter(s=>s.sex==='M').length;
+  const f = roomStudents.filter(s=>s.sex==='F').length;
+  let num = 1;
+  const rows = toAdd.map(s => [String(num++), s.name, s.id, s.sex==='M'?'Male':'Female']);
+  const addTable = buildTable(['No','Name','ID','Sex'], rows);
+  const countTable = buildTable(['Room','Total','Male','Female'], [[room.nameEn, String(roomStudents.length), String(m), String(f)]]);
+  const msg =
+    `<b>🏫 ${building.nameEn} › ${floor.nameEn} › ${room.nameEn}</b>\n` +
+    `<b>✅ ${toAdd.length} New Student${toAdd.length>1?'s':''} Added</b>\n` +
+    `<b>📅 ${dateAdded} at ${nowTime()}</b>\n\n` +
+    `<pre>${addTable}</pre>\n` +
+    `<b>📊 Room count after update:</b>\n<pre>${countTable}</pre>`;
+  const result = await tgSend(msg);
+  if(result.ok) toast('📤 Sent to Telegram!', 'success');
+}
+
+async function sendTelegramRemove(s, room, floor, building) {
+  if(!tgToken||!tgChatId) return;
+  const roomStudents = getRoomStudents(room.id);
+  const m = roomStudents.filter(x=>x.sex==='M').length;
+  const f = roomStudents.filter(x=>x.sex==='F').length;
+  const table = buildTable(['Field','Detail'], [
+    ['Action','🚫 Student Removed'],['Name',s.name],['ID',s.id],
+    ['Sex',s.sex==='M'?'Male':'Female'],['Room',room.nameEn],
+    ['Floor',floor.nameEn],['Building',building.nameEn],
+    ['Date Removed',s.dateRemoved],['Time',nowTime()],
+  ]);
+  const countTable = buildTable(['Room','Total','Male','Female'],[[room.nameEn,String(roomStudents.length),String(m),String(f)]]);
+  const msg =
+    `<b>🏫 ${building.nameEn} › ${floor.nameEn} › ${room.nameEn}</b>\n\n` +
+    `<pre>${table}</pre>\n` +
+    `<b>📊 Room count after update:</b>\n<pre>${countTable}</pre>`;
+  const result2 = await tgSend(msg);
+  if(result2.ok) toast('📤 Sent to Telegram!', 'success');
+}
+
+async function sendRoomSummary() {
+  if(!tgToken||!tgChatId) { toast('Configure Telegram in Settings first','error'); return; }
+  const roomId = currentRoomId;
+  const room     = findRoom(roomId);
+  const floor    = findFloor(roomId);
+  const building = findBuilding(roomId);
+  const active   = getRoomStudents(roomId);
+  const m = active.filter(s=>s.sex==='M').length;
+  const f = active.filter(s=>s.sex==='F').length;
+  let num = 1;
+  const rows = active.map(s=>[String(num++),s.name,s.id,s.sex==='M'?'M':'F',s.dateAdded]);
+  const table = rows.length
+    ? buildTable(['No','Name','ID','Sex','Date Added'], rows)
+    : '(No active students)';
+  const msg =
+    `<b>📊 Room Summary — ${room.nameEn}</b>\n` +
+    `<b>${building.nameEn} › ${floor.nameEn}</b>\n` +
+    `<b>📅 ${today()}</b>\n\n` +
+    `Total: <b>${active.length}</b> (${m} Male, ${f} Female)\n\n` +
+    `<pre>${table}</pre>\n<i>Sent from School Floor System</i>`;
+  const data = await tgSend(msg);
+  if(data.ok) toast('Room summary sent to Telegram!','success');
+  else toast('Telegram error','error');
+}
+
+async function sendTelegramSummary() {
+  if(!tgToken||!tgChatId) { toast('Configure Telegram in Settings first','error'); return; }
+  let totalActive=0, totalM=0, totalF=0;
+  const buildingRows = [];
+  BUILDINGS.forEach(b => {
+    b.floors.forEach(f => {
+      f.rooms.forEach(r => {
+        const active = getRoomStudents(r.id);
+        const m = active.filter(s=>s.sex==='M').length;
+        const fc = active.filter(s=>s.sex==='F').length;
+        buildingRows.push([b.nameEn, f.nameEn, r.nameEn, String(active.length), String(m), String(fc)]);
+        totalActive += active.length; totalM += m; totalF += fc;
+      });
+    });
+  });
+  buildingRows.push(['—','—','TOTAL', String(totalActive), String(totalM), String(totalF)]);
+  const table = buildTable(['Building','Floor','Room','Total','Male','Female'], buildingRows);
+  const msg =
+    `<b>📊 School Floor — Full Summary</b>\n<b>📅 ${today()}</b>\n\n` +
+    `<pre>${table}</pre>\n<i>Sent from School Floor System</i>`;
+  const data = await tgSend(msg);
+  if(data.ok) toast('Full summary sent to Telegram!','success');
+  else toast('Telegram error: '+(data.description||''),'error');
+}
+
+async function testTelegram() {
+  const token  = document.getElementById('tg-token').value.trim();
+  const chatId = document.getElementById('tg-chatid').value.trim();
+  const st = document.getElementById('tg-status');
+  if(!token||!chatId) {
+    st.style.display='inline-block'; st.className='tg-status-pill tg-err'; st.textContent='Fill both fields';
+    setTimeout(()=>st.style.display='none',3000); return;
+  }
+  const table = buildTable(['Field','Detail'],[['Status','✅ Connected'],['System','School Floor v3.0'],['Date',today()],['Time',nowTime()]]);
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({chat_id:chatId, text:`<b>🏫 School Floor System — Test</b>\n\n<pre>${table}</pre>`, parse_mode:'HTML'})
+    });
+    const data = await res.json();
+    st.style.display='inline-block';
+    if(data.ok) { st.className='tg-status-pill tg-ok'; st.textContent='✅ Sent!'; toast('Test message sent!','success'); }
+    else { st.className='tg-status-pill tg-err'; st.textContent='❌ '+data.description; }
+  } catch(e) { st.style.display='inline-block'; st.className='tg-status-pill tg-err'; st.textContent='❌ Network error'; }
+  setTimeout(()=>st.style.display='none',4000);
+}
+
+// ════════════════════════════════════════
+// KEYBOARD
+// ════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') { closeAddModal(); closeDelModal(); }
+});
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+// Auto-save default credentials to localStorage on first load
+if(!localStorage.getItem('tgToken')  && tgToken)  localStorage.setItem('tgToken',  tgToken);
+if(!localStorage.getItem('tgChatId') && tgChatId) localStorage.setItem('tgChatId', tgChatId);
+
+buildSidebar();
+renderOverview();
+</script>
+</body>
+</html>
