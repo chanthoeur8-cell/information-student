@@ -1001,150 +1001,161 @@ function clearAllData() {
 // ════════════════════════════════════════
 function pad(str, len) {
   str = String(str);
-  if(str.length >= len) return str.slice(0,len);
-  return str + ' '.repeat(len - str.length);
+  // strip HTML tags for length calculation
+  const plain = str.replace(/<[^>]*>/g,'');
+  if(plain.length >= len) return str;
+  return str + ' '.repeat(len - plain.length);
 }
 function buildTable(headers, rows) {
-  const widths = headers.map((h,i) => rows.reduce((m,r) => Math.max(m, String(r[i]||'').length), h.length));
+  // Calculate widths ignoring HTML tags
+  function visLen(s){ return String(s).replace(/<[^>]*>/g,'').length; }
+  const widths = headers.map((h,i) => {
+    let max = visLen(h);
+    rows.forEach(r => { const v = visLen(r[i]||''); if(v>max) max=v; });
+    return max;
+  });
   const top  = '┌' + widths.map(w=>'─'.repeat(w+2)).join('┬') + '┐';
   const mid  = '├' + widths.map(w=>'─'.repeat(w+2)).join('┼') + '┤';
   const bot  = '└' + widths.map(w=>'─'.repeat(w+2)).join('┴') + '┘';
-  const fmtRow = cells => '│' + cells.map((c,i)=>' '+pad(c,widths[i])+' ').join('│') + '│';
+  const fmtRow = cells => '│' + cells.map((c,i)=>{
+    const s = String(c);
+    const vl = visLen(s);
+    return ' ' + s + ' '.repeat(Math.max(0, widths[i]-vl)) + ' ';
+  }).join('│') + '│';
   return [top, fmtRow(headers), mid, ...rows.map(r=>fmtRow(r.map(String))), bot].join('\n');
 }
 
-async function tgSend(text) {
-  if(!tgToken || !tgChatId) {
-    toast('⚠️ Telegram not configured — go to Settings', 'error');
-    return {ok:false, description:'Not configured'};
-  }
+// Send plain text (monospace via backtick code block via Markdown)
+async function tgSendPlain(text) {
+  if(!tgToken || !tgChatId) { toast('Telegram not configured', 'error'); return {ok:false}; }
   try {
     const res = await fetch('https://api.telegram.org/bot' + tgToken + '/sendMessage', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({chat_id: tgChatId, text: text, parse_mode: 'HTML'})
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({chat_id: tgChatId, text: text})
     });
     const data = await res.json();
-    if(!data.ok) {
-      console.error('Telegram error:', data);
-      toast('❌ Telegram: ' + (data.description || 'Unknown error'), 'error');
-    }
+    if(!data.ok) toast('Telegram error: ' + (data.description||''), 'error');
     return data;
-  } catch(e) {
-    console.error('Telegram fetch error:', e);
-    toast('❌ Network error — check internet connection', 'error');
-    return {ok:false, description: e.message};
-  }
+  } catch(e) { toast('Network error', 'error'); return {ok:false}; }
+}
+async function tgSend(text) { return tgSendPlain(text); }
+
+// Escape special chars for MarkdownV2
+function esc(s) {
+  return String(s).replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, '\\$&');
 }
 
 async function sendTelegramBulkAdd(toAdd, room, floor, building, dateAdded) {
-  if(!tgToken||!tgChatId) return;
-  const roomStudents = getRoomStudents(room.id);
-  const m = roomStudents.filter(s=>s.sex==='M').length;
-  const f = roomStudents.filter(s=>s.sex==='F').length;
-  let num = 1;
-  const rows = toAdd.map(s => [String(num++), s.name, s.id, s.sex==='M'?'Male':'Female']);
-  const addTable = buildTable(['No','Name','ID','Sex'], rows);
-  const countTable = buildTable(['Room','Total','Male','Female'], [[room.nameEn, String(roomStudents.length), String(m), String(f)]]);
-  const msg =
-    `<b>🏫 ${building.nameEn} › ${floor.nameEn} › ${room.nameEn}</b>\n` +
-    `<b>✅ ${toAdd.length} New Student${toAdd.length>1?'s':''} Added</b>\n` +
-    `<b>📅 ${dateAdded} at ${nowTime()}</b>\n\n` +
-    `<pre>${addTable}</pre>\n` +
-    `<b>📊 Room count after update:</b>\n<pre>${countTable}</pre>`;
-  const result = await tgSend(msg);
-  if(result.ok) toast('📤 Sent to Telegram!', 'success');
+  if(!tgToken || !tgChatId) return;
+  const rs = getRoomStudents(room.id);
+  const m = rs.filter(s=>s.sex==='M').length;
+  const f = rs.filter(s=>s.sex==='F').length;
+  let n = 1;
+  const addTbl = buildTable(['No','Name','ID','Sex'],
+    toAdd.map(s=>[String(n++), s.name, s.id, s.sex==='M'?'Male':'Female']));
+  const cntTbl = buildTable(['Room','Total','Male','Female'],
+    [[room.nameEn, String(rs.length), String(m), String(f)]]);
+  const msg = [
+    '🏫 School Floor - Student Update',
+    building.nameEn + ' > ' + floor.nameEn + ' > ' + room.nameEn,
+    '✅ ' + toAdd.length + ' New Student' + (toAdd.length>1?'s':'') + ' Added',
+    '📅 ' + dateAdded + ' at ' + nowTime(),
+    '', addTbl, '',
+    '📊 Room count after update:', cntTbl
+  ].join('\n');
+  const r = await tgSendPlain(msg);
+  if(r && r.ok) toast('📤 Sent to Telegram!', 'success');
 }
 
 async function sendTelegramRemove(s, room, floor, building) {
-  if(!tgToken||!tgChatId) return;
-  const roomStudents = getRoomStudents(room.id);
-  const m = roomStudents.filter(x=>x.sex==='M').length;
-  const f = roomStudents.filter(x=>x.sex==='F').length;
-  const table = buildTable(['Field','Detail'], [
-    ['Action','🚫 Student Removed'],['Name',s.name],['ID',s.id],
-    ['Sex',s.sex==='M'?'Male':'Female'],['Room',room.nameEn],
-    ['Floor',floor.nameEn],['Building',building.nameEn],
-    ['Date Removed',s.dateRemoved],['Time',nowTime()],
+  if(!tgToken || !tgChatId) return;
+  const rs = getRoomStudents(room.id);
+  const m = rs.filter(x=>x.sex==='M').length;
+  const f = rs.filter(x=>x.sex==='F').length;
+  const tbl = buildTable(['Field','Detail'],[
+    ['Action', '🚫 Student Removed'], ['Name', s.name], ['Student ID', s.id],
+    ['Sex', s.sex==='M'?'Male':'Female'], ['Room', room.nameEn],
+    ['Floor', floor.nameEn], ['Building', building.nameEn],
+    ['Date', s.dateRemoved], ['Time', nowTime()]
   ]);
-  const countTable = buildTable(['Room','Total','Male','Female'],[[room.nameEn,String(roomStudents.length),String(m),String(f)]]);
-  const msg =
-    `<b>🏫 ${building.nameEn} › ${floor.nameEn} › ${room.nameEn}</b>\n\n` +
-    `<pre>${table}</pre>\n` +
-    `<b>📊 Room count after update:</b>\n<pre>${countTable}</pre>`;
-  const result2 = await tgSend(msg);
-  if(result2.ok) toast('📤 Sent to Telegram!', 'success');
+  const cntTbl = buildTable(['Room','Total','Male','Female'],
+    [[room.nameEn, String(rs.length), String(m), String(f)]]);
+  const msg = [
+    '🏫 School Floor - Student Update',
+    building.nameEn + ' > ' + floor.nameEn + ' > ' + room.nameEn,
+    '', tbl, '',
+    '📊 Room count after update:', cntTbl
+  ].join('\n');
+  const r = await tgSendPlain(msg);
+  if(r && r.ok) toast('📤 Sent to Telegram!', 'success');
 }
 
 async function sendRoomSummary() {
   if(!tgToken||!tgChatId) { toast('Configure Telegram in Settings first','error'); return; }
-  const roomId = currentRoomId;
-  const room     = findRoom(roomId);
-  const floor    = findFloor(roomId);
-  const building = findBuilding(roomId);
-  const active   = getRoomStudents(roomId);
-  const m = active.filter(s=>s.sex==='M').length;
-  const f = active.filter(s=>s.sex==='F').length;
-  let num = 1;
-  const rows = active.map(s=>[String(num++),s.name,s.id,s.sex==='M'?'M':'F',s.dateAdded]);
-  const table = rows.length
-    ? buildTable(['No','Name','ID','Sex','Date Added'], rows)
-    : '(No active students)';
-  const msg =
-    `<b>📊 Room Summary — ${room.nameEn}</b>\n` +
-    `<b>${building.nameEn} › ${floor.nameEn}</b>\n` +
-    `<b>📅 ${today()}</b>\n\n` +
-    `Total: <b>${active.length}</b> (${m} Male, ${f} Female)\n\n` +
-    `<pre>${table}</pre>\n<i>Sent from School Floor System</i>`;
-  const data = await tgSend(msg);
-  if(data.ok) toast('Room summary sent to Telegram!','success');
-  else toast('Telegram error','error');
+  const room=findRoom(currentRoomId), floor=findFloor(currentRoomId), building=findBuilding(currentRoomId);
+  const active=getRoomStudents(currentRoomId);
+  const m=active.filter(s=>s.sex==='M').length, f=active.filter(s=>s.sex==='F').length;
+  let n=1;
+  const rows=active.map(s=>[String(n++),s.name,s.id,s.sex==='M'?'M':'F',s.dateAdded]);
+  const tbl=rows.length?buildTable(['No','Name','ID','Sex','Date Added'],rows):'(No students)';
+  const msg=[
+    '📊 Room Summary: '+room.nameEn,
+    building.nameEn+' > '+floor.nameEn,
+    '📅 '+today(),
+    'Total: '+active.length+' ('+m+' Male, '+f+' Female)',
+    '', tbl
+  ].join('\n');
+  const d=await tgSendPlain(msg);
+  if(d&&d.ok) toast('Room summary sent!','success');
+  else if(d) toast('Telegram error: '+(d.description||''),'error');
 }
 
 async function sendTelegramSummary() {
   if(!tgToken||!tgChatId) { toast('Configure Telegram in Settings first','error'); return; }
-  let totalActive=0, totalM=0, totalF=0;
-  const buildingRows = [];
-  BUILDINGS.forEach(b => {
-    b.floors.forEach(f => {
-      f.rooms.forEach(r => {
-        const active = getRoomStudents(r.id);
-        const m = active.filter(s=>s.sex==='M').length;
-        const fc = active.filter(s=>s.sex==='F').length;
-        buildingRows.push([b.nameEn, f.nameEn, r.nameEn, String(active.length), String(m), String(fc)]);
-        totalActive += active.length; totalM += m; totalF += fc;
-      });
-    });
-  });
-  buildingRows.push(['—','—','TOTAL', String(totalActive), String(totalM), String(totalF)]);
-  const table = buildTable(['Building','Floor','Room','Total','Male','Female'], buildingRows);
-  const msg =
-    `<b>📊 School Floor — Full Summary</b>\n<b>📅 ${today()}</b>\n\n` +
-    `<pre>${table}</pre>\n<i>Sent from School Floor System</i>`;
-  const data = await tgSend(msg);
-  if(data.ok) toast('Full summary sent to Telegram!','success');
-  else toast('Telegram error: '+(data.description||''),'error');
+  let ta=0, tm=0, tf=0; const bRows=[];
+  BUILDINGS.forEach(b=>b.floors.forEach(f=>f.rooms.forEach(r=>{
+    const a=getRoomStudents(r.id);
+    const m=a.filter(s=>s.sex==='M').length, fc=a.filter(s=>s.sex==='F').length;
+    bRows.push([b.nameEn,f.nameEn,r.nameEn,String(a.length),String(m),String(fc)]);
+    ta+=a.length; tm+=m; tf+=fc;
+  })));
+  bRows.push(['---','---','TOTAL',String(ta),String(tm),String(tf)]);
+  const tbl=buildTable(['Building','Floor','Room','Total','M','F'],bRows);
+  const msg=[
+    '📊 School Floor - Full Summary',
+    '📅 Date: '+today(), '',
+    tbl, '', 'Sent from School Floor System'
+  ].join('\n');
+  const d=await tgSendPlain(msg);
+  if(d&&d.ok) toast('Full summary sent!','success');
+  else if(d) toast('Telegram error: '+(d.description||''),'error');
 }
 
 async function testTelegram() {
-  const token  = document.getElementById('tg-token').value.trim();
-  const chatId = document.getElementById('tg-chatid').value.trim();
-  const st = document.getElementById('tg-status');
+  const token=document.getElementById('tg-token').value.trim();
+  const chatId=document.getElementById('tg-chatid').value.trim();
+  const st=document.getElementById('tg-status');
   if(!token||!chatId) {
     st.style.display='inline-block'; st.className='tg-status-pill tg-err'; st.textContent='Fill both fields';
     setTimeout(()=>st.style.display='none',3000); return;
   }
-  const table = buildTable(['Field','Detail'],[['Status','✅ Connected'],['System','School Floor v3.0'],['Date',today()],['Time',nowTime()]]);
+  const tbl=buildTable(['Field','Detail'],[
+    ['Status','Connected OK'],['System','School Floor v3.0'],
+    ['Date',today()],['Time',nowTime()]
+  ]);
+  const msg='🏫 School Floor - Connection Test\n\n'+tbl+'\n\nTelegram is working!';
   try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{
+    const res=await fetch('https://api.telegram.org/bot'+token+'/sendMessage',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({chat_id:chatId, text:`<b>🏫 School Floor System — Test</b>\n\n<pre>${table}</pre>`, parse_mode:'HTML'})
+      body:JSON.stringify({chat_id:chatId, text:msg})
     });
-    const data = await res.json();
+    const data=await res.json();
     st.style.display='inline-block';
-    if(data.ok) { st.className='tg-status-pill tg-ok'; st.textContent='✅ Sent!'; toast('Test message sent!','success'); }
-    else { st.className='tg-status-pill tg-err'; st.textContent='❌ '+data.description; }
-  } catch(e) { st.style.display='inline-block'; st.className='tg-status-pill tg-err'; st.textContent='❌ Network error'; }
+    if(data.ok) { st.className='tg-status-pill tg-ok'; st.textContent='✅ Sent!'; toast('Test sent! Check Telegram.','success'); }
+    else { st.className='tg-status-pill tg-err'; st.textContent='❌ '+data.description; toast('Error: '+data.description,'error'); }
+  } catch(e) {
+    st.style.display='inline-block'; st.className='tg-status-pill tg-err'; st.textContent='❌ Network error';
+  }
   setTimeout(()=>st.style.display='none',4000);
 }
 
