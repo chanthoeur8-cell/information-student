@@ -434,8 +434,8 @@ const BUILDINGS = [
       {
         id: 'old-f1', name: 'ជាន់ទី១', nameEn: 'Floor 1',
         rooms: [
-          {id:'old-f1-r1', name:'បន្ទប់ ១', nameEn:'Nursery', type:'class'},
-          {id:'old-f1-r2', name:'បន្ទប់ ២', nameEn:'មត្តេយ្យទាប', type:'class'},
+          {id:'old-f1-r1', name:'បន្ទប់ ១', nameEn:'មត្ដេយ្យទាប', type:'class'},
+          {id:'old-f1-r2', name:'បន្ទប់ ២', nameEn:'Nursery', type:'class'},
           {id:'old-f1-r3', name:'បន្ទប់ ៣ (ការមើលថែ)', nameEn:'Room 3 (Care)', type:'care'},
           {id:'old-f1-r4', name:'បន្ទប់ ៤ (ការមើលថែ)', nameEn:'Room 4 (Care)', type:'care'},
         ]
@@ -443,19 +443,19 @@ const BUILDINGS = [
       {
         id: 'old-f2', name: 'ជាន់ទី២', nameEn: 'Floor 2',
         rooms: [
-          {id:'old-f2-r1', name:'បន្ទប់ ១', nameEn:'ថ្នាក់ទី១​ (ត្រៀម)', type:'class'},
-          {id:'old-f2-r2', name:'បន្ទប់ ២', nameEn:'Foundation1', type:'class'},
-          {id:'old-f2-r3', name:'បន្ទប់ ៣', nameEn:'ថ្នាក់ទី១​', type:'class'},
-          {id:'old-f2-r4', name:'បន្ទប់ ៤', nameEn:'ថ្នាក់ទី២', type:'class'},
+          {id:'old-f2-r1', name:'បន្ទប់ ១', nameEn:'Foundation1', type:'class'},
+          {id:'old-f2-r2', name:'បន្ទប់ ២', nameEn:'ថ្នាក់ទី១(ត្រៀម)', type:'class'},
+          {id:'old-f2-r3', name:'បន្ទប់ ៣', nameEn:'ថ្នាក់ទី២', type:'class'},
+          {id:'old-f2-r4', name:'បន្ទប់ ៤', nameEn:'ថ្នាក់ទី១', type:'class'},
         ]
       },
       {
         id: 'old-f3', name: 'ជាន់ទី៣', nameEn: 'Floor 3',
         rooms: [
-          {id:'old-f3-r1', name:'បន្ទប់ ១', nameEn:'Foundation2', type:'class'},
-          {id:'old-f3-r2', name:'បន្ទប់ ២', nameEn:'ថ្នាក់ទី៣', type:'class'},
-          {id:'old-f3-r3', name:'បន្ទប់ ៣', nameEn:'Room 3', type:'class'},
-          {id:'old-f3-r4', name:'បន្ទប់ ៤', nameEn:'ថ្នាក់ទី៥', type:'class'},
+          {id:'old-f3-r1', name:'បន្ទប់ ១', nameEn:'ថ្នាក់ទី៣', type:'class'},
+          {id:'old-f3-r2', name:'បន្ទប់ ២', nameEn:'Foundation2', type:'class'},
+          {id:'old-f3-r3', name:'បន្ទប់ ៣', nameEn:'ថ្នាក់ទី៥', type:'class'},
+          {id:'old-f3-r4', name:'បន្ទប់ ៤', nameEn:'Room 4', type:'class'},
         ]
       },
     ]
@@ -1026,18 +1026,30 @@ function buildTable(headers, rows) {
 }
 
 // Send plain text (monospace via backtick code block via Markdown)
-async function tgSendPlain(text) {
+async function tgSendPlain(header, tableText, footer) {
+  // header = plain text lines before table
+  // tableText = the ASCII table (goes inside <pre>)
+  // footer = optional plain lines after table
   if(!tgToken || !tgChatId) { toast('Telegram not configured', 'error'); return {ok:false}; }
+  // Build HTML message: header as bold lines + <pre> table block
+  const headerHtml = header.split('\n').map(l => {
+    if(!l.trim()) return '';
+    return l;
+  }).join('\n');
+  let html = headerHtml;
+  if(tableText) html += '\n<pre>' + tableText + '</pre>';
+  if(footer)    html += '\n' + footer;
   try {
     const res = await fetch('https://api.telegram.org/bot' + tgToken + '/sendMessage', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({chat_id: tgChatId, text: text})
+      body: JSON.stringify({chat_id: tgChatId, text: html, parse_mode: 'HTML'})
     });
     const data = await res.json();
-    if(!data.ok) toast('Telegram error: ' + (data.description||''), 'error');
+    if(!data.ok) { console.error('TG error:', data); toast('Telegram error: ' + (data.description||''), 'error'); }
     return data;
   } catch(e) { toast('Network error', 'error'); return {ok:false}; }
 }
+async function tgSend(text) { return tgSendPlain(text, '', ''); }
 async function tgSend(text) { return tgSendPlain(text); }
 
 // Escape special chars for MarkdownV2
@@ -1051,19 +1063,18 @@ async function sendTelegramBulkAdd(toAdd, room, floor, building, dateAdded) {
   const m = rs.filter(s=>s.sex==='M').length;
   const f = rs.filter(s=>s.sex==='F').length;
   let n = 1;
-  const addTbl = buildTable(['No','Name','ID','Sex'],
+  const addTbl  = buildTable(['No','Name','ID','Sex'],
     toAdd.map(s=>[String(n++), s.name, s.id, s.sex==='M'?'Male':'Female']));
-  const cntTbl = buildTable(['Room','Total','Male','Female'],
+  const cntTbl  = buildTable(['Room','Total','Male','Female'],
     [[room.nameEn, String(rs.length), String(m), String(f)]]);
-  const msg = [
-    '🏫 School Floor - Student Update',
-    building.nameEn + ' > ' + floor.nameEn + ' > ' + room.nameEn,
-    '✅ ' + toAdd.length + ' New Student' + (toAdd.length>1?'s':'') + ' Added',
-    '📅 ' + dateAdded + ' at ' + nowTime(),
-    '', addTbl, '',
-    '📊 Room count after update:', cntTbl
+  const header = [
+    '🏫 <b>School Floor – Student Update</b>',
+    building.nameEn + ' › ' + floor.nameEn + ' › ' + room.nameEn,
+    '✅ <b>' + toAdd.length + ' New Student' + (toAdd.length>1?'s':'') + ' Added</b>',
+    '📅 ' + dateAdded + ' at ' + nowTime()
   ].join('\n');
-  const r = await tgSendPlain(msg);
+  const tableBlock = addTbl + '\n\n📊 <b>Room count after update:</b>\n' + cntTbl;
+  const r = await tgSendPlain(header, tableBlock, '');
   if(r && r.ok) toast('📤 Sent to Telegram!', 'success');
 }
 
@@ -1080,13 +1091,12 @@ async function sendTelegramRemove(s, room, floor, building) {
   ]);
   const cntTbl = buildTable(['Room','Total','Male','Female'],
     [[room.nameEn, String(rs.length), String(m), String(f)]]);
-  const msg = [
-    '🏫 School Floor - Student Update',
-    building.nameEn + ' > ' + floor.nameEn + ' > ' + room.nameEn,
-    '', tbl, '',
-    '📊 Room count after update:', cntTbl
+  const header = [
+    '🏫 <b>School Floor – Student Update</b>',
+    building.nameEn + ' › ' + floor.nameEn + ' › ' + room.nameEn
   ].join('\n');
-  const r = await tgSendPlain(msg);
+  const tableBlock = tbl + '\n\n📊 <b>Room count after update:</b>\n' + cntTbl;
+  const r = await tgSendPlain(header, tableBlock, '');
   if(r && r.ok) toast('📤 Sent to Telegram!', 'success');
 }
 
@@ -1098,21 +1108,20 @@ async function sendRoomSummary() {
   let n=1;
   const rows=active.map(s=>[String(n++),s.name,s.id,s.sex==='M'?'M':'F',s.dateAdded]);
   const tbl=rows.length?buildTable(['No','Name','ID','Sex','Date Added'],rows):'(No students)';
-  const msg=[
-    '📊 Room Summary: '+room.nameEn,
-    building.nameEn+' > '+floor.nameEn,
-    '📅 '+today(),
-    'Total: '+active.length+' ('+m+' Male, '+f+' Female)',
-    '', tbl
+  const header = [
+    '📊 <b>Room Summary: ' + room.nameEn + '</b>',
+    building.nameEn + ' › ' + floor.nameEn,
+    '📅 ' + today(),
+    'Total: <b>' + active.length + '</b> (' + m + ' Male, ' + f + ' Female)'
   ].join('\n');
-  const d=await tgSendPlain(msg);
+  const d=await tgSendPlain(header, tbl, '');
   if(d&&d.ok) toast('Room summary sent!','success');
   else if(d) toast('Telegram error: '+(d.description||''),'error');
 }
 
 async function sendTelegramSummary() {
   if(!tgToken||!tgChatId) { toast('Configure Telegram in Settings first','error'); return; }
-  let ta=0, tm=0, tf=0; const bRows=[];
+  let ta=0,tm=0,tf=0; const bRows=[];
   BUILDINGS.forEach(b=>b.floors.forEach(f=>f.rooms.forEach(r=>{
     const a=getRoomStudents(r.id);
     const m=a.filter(s=>s.sex==='M').length, fc=a.filter(s=>s.sex==='F').length;
@@ -1121,12 +1130,11 @@ async function sendTelegramSummary() {
   })));
   bRows.push(['---','---','TOTAL',String(ta),String(tm),String(tf)]);
   const tbl=buildTable(['Building','Floor','Room','Total','M','F'],bRows);
-  const msg=[
-    '📊 School Floor - Full Summary',
-    '📅 Date: '+today(), '',
-    tbl, '', 'Sent from School Floor System'
+  const header = [
+    '📊 <b>School Floor – Full Summary</b>',
+    '📅 Date: ' + today()
   ].join('\n');
-  const d=await tgSendPlain(msg);
+  const d=await tgSendPlain(header, tbl, '<i>Sent from School Floor System</i>');
   if(d&&d.ok) toast('Full summary sent!','success');
   else if(d) toast('Telegram error: '+(d.description||''),'error');
 }
@@ -1143,11 +1151,12 @@ async function testTelegram() {
     ['Status','Connected OK'],['System','School Floor v3.0'],
     ['Date',today()],['Time',nowTime()]
   ]);
-  const msg='🏫 School Floor - Connection Test\n\n'+tbl+'\n\nTelegram is working!';
+  const header='🏫 <b>School Floor System – Connection Test</b>';
+  const footer='<i>Telegram is working correctly!</i>';
   try {
     const res=await fetch('https://api.telegram.org/bot'+token+'/sendMessage',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({chat_id:chatId, text:msg})
+      body:JSON.stringify({chat_id:chatId, text: header+'\n<pre>'+tbl+'</pre>\n'+footer, parse_mode:'HTML'})
     });
     const data=await res.json();
     st.style.display='inline-block';
