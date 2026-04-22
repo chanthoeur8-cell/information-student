@@ -278,36 +278,50 @@
           <h2 id="room-title">Room</h2>
           <div class="breadcrumb" id="room-breadcrumb"></div>
         </div>
-        <div class="page-header-actions">
+        <div class="page-header-actions" id="room-actions" style="display:none;">
           <button class="btn btn-primary" onclick="openAddModal()">+ Add students</button>
-          <button class="btn btn-teal" onclick="sendRoomSummary()">📤 Send to Telegram</button>
+          <button class="btn btn-teal" onclick="sendRoomSummary()">&#128228; Send to Telegram</button>
         </div>
       </div>
-      <div class="stats-grid" id="room-stats"></div>
-      <div class="card">
-        <div class="toolbar">
-          <input type="text" class="search" id="search-input" placeholder="🔍  Search by name or ID…" oninput="renderRoomTable()" />
-          <select id="filter-sex" onchange="renderRoomTable()">
-            <option value="">All sexes</option>
-            <option value="M">Male</option>
-            <option value="F">Female</option>
-          </select>
-          <select id="filter-status" onchange="renderRoomTable()">
-            <option value="active">Active only</option>
-            <option value="all">All students</option>
-            <option value="deleted">Removed only</option>
-          </select>
+      <div id="class-selector-panel" style="display:none;margin-bottom:18px;">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header" style="padding:12px 18px;">
+            <h3 id="class-selector-title" style="font-size:14px;">រើសថ្នាក់</h3>
+          </div>
+          <div id="class-selector-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:16px 18px;"></div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th><th>Student ID</th><th>Full name</th><th>Sex</th>
-                <th>Date added</th><th>Status</th><th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="room-tbody"></tbody>
-          </table>
+      </div>
+      <div id="class-view-panel" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+          <button class="btn btn-sm" onclick="backToClassSelector()" id="back-btn" style="display:none;">&#8592; Back</button>
+          <div>
+            <span style="font-size:14px;font-weight:600;" id="class-view-title"></span>
+            <span style="font-size:12px;color:var(--text3);margin-left:8px;" id="class-view-sub"></span>
+          </div>
+        </div>
+        <div class="stats-grid" id="room-stats"></div>
+        <div class="card">
+          <div class="toolbar">
+            <input type="text" class="search" id="search-input" placeholder="Search name or ID" oninput="renderRoomTable()" />
+            <select id="filter-sex" onchange="renderRoomTable()">
+              <option value="">All sexes</option>
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+            </select>
+            <select id="filter-status" onchange="renderRoomTable()">
+              <option value="active">Active only</option>
+              <option value="all">All students</option>
+              <option value="deleted">Removed only</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>#</th><th>ID</th><th>Full name</th><th>Sex</th><th>Date added</th><th>Status</th><th>Action</th></tr>
+              </thead>
+              <tbody id="room-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -434,28 +448,76 @@ const BUILDINGS = [
       {
         id: 'old-f1', name: 'ជាន់ទី១', nameEn: 'Floor 1',
         rooms: [
-          {id:'old-f1-r1', name:'បន្ទប់ ១', nameEn:'មត្ដេយ្យទាប(ព្រឹក)', type:'class'},
-          {id:'old-f1-r2', name:'បន្ទប់ ២', nameEn:'Nursery', type:'class'},
-          {id:'old-f1-r3', name:'បន្ទប់ ៣ (ការមើលថែ)', nameEn:'Room 3 (Care)', type:'care'},
-          {id:'old-f1-r4', name:'បន្ទប់ ៤ (ការមើលថែ)', nameEn:'Room 4 (Care)', type:'care'},
+          {
+            id:'old-f1-r1', name:'បន្ទប់ទី១', nameEn:'Room 1',
+            type:'class', label:'Nursery (ព្រឹក+រសៀល)',
+            classes: ['new-f3-r1','new-f3-r2']
+          },
+          {
+            id:'old-f1-r2', name:'បន្ទប់ទី២', nameEn:'Room 2',
+            type:'class', label:'មត្តេយ្យទាប + មត្តេយ្យមធ្យម',
+            classes: ['old-f3-r3','old-f3-r4','old-f1-r1','old-f1-r2']
+          },
+          {
+            id:'old-f1-r3', name:'បន្ទប់ទី៣', nameEn:'Room 3 (Care)',
+            type:'care', label:'ការថែទាំ ១',
+            classes: []
+          },
+          {
+            id:'old-f1-r4', name:'បន្ទប់ទី៤', nameEn:'Room 4 (Care)',
+            type:'care', label:'ការថែទាំ ២',
+            classes: []
+          },
         ]
       },
       {
         id: 'old-f2', name: 'ជាន់ទី២', nameEn: 'Floor 2',
         rooms: [
-          {id:'old-f2-r1', name:'បន្ទប់ ១', nameEn:'Foundation1', type:'class'},
-          {id:'old-f2-r2', name:'បន្ទប់ ២', nameEn:'ថ្នាក់ទី១(ត្រៀម)', type:'class'},
-          {id:'old-f2-r3', name:'បន្ទប់ ៣', nameEn:'ថ្នាក់ទី២', type:'class'},
-          {id:'old-f2-r4', name:'បន្ទប់ ៤', nameEn:'ថ្នាក់ទី១', type:'class'},
+          {
+            id:'old-f2-r1', name:'បន្ទប់ទី១', nameEn:'Room 1',
+            type:'class', label:'មត្តេយ្យខ្ពស់ (ព្រឹក+រសៀល)',
+            classes: ['old-f1-r3','old-f1-r4']
+          },
+          {
+            id:'old-f2-r2', name:'បន្ទប់ទី២', nameEn:'Room 2',
+            type:'class', label:'Foundation 1 (Morning+Evening)',
+            classes: ['new-f2-r1','new-f2-r2']
+          },
+          {
+            id:'old-f2-r3', name:'បន្ទប់ទី៣', nameEn:'Room 3',
+            type:'class', label:'ថ្នាក់ទី២ (ព្រឹក+រសៀល)',
+            classes: ['old-f2-r3','old-f2-r4']
+          },
+          {
+            id:'old-f2-r4', name:'បន្ទប់ទី៤', nameEn:'Room 4',
+            type:'class', label:'ថ្នាក់ទី១ (ព្រឹក+រសៀល)',
+            classes: ['old-f2-r1','old-f2-r2']
+          },
         ]
       },
       {
         id: 'old-f3', name: 'ជាន់ទី៣', nameEn: 'Floor 3',
         rooms: [
-          {id:'old-f3-r1', name:'បន្ទប់ ១', nameEn:'ថ្នាក់ទី៣', type:'class'},
-          {id:'old-f3-r2', name:'បន្ទប់ ២', nameEn:'Foundation2', type:'class'},
-          {id:'old-f3-r3', name:'បន្ទប់ ៣', nameEn:'ថ្នាក់ទី៥', type:'class'},
-          {id:'old-f3-r4', name:'បន្ទប់ ៤', nameEn:'Room 4', type:'class'},
+          {
+            id:'old-f3-r1b', name:'បន្ទប់ទី១', nameEn:'Room 1',
+            type:'null', label:'(Null)',
+            classes: []
+          },
+          {
+            id:'old-f3-r2b', name:'បន្ទប់ទី២', nameEn:'Room 2',
+            type:'class', label:'ថ្នាក់ទី៣ (ព្រឹក+រសៀល)',
+            classes: ['old-f3-r1']
+          },
+          {
+            id:'old-f3-r3b', name:'បន្ទប់ទី៣', nameEn:'Room 3',
+            type:'class', label:'ថ្នាក់ទី៤ (ព្រឹក) + ទី៥',
+            classes: ['old-f3-r2a','old-f3-r2b']
+          },
+          {
+            id:'old-f3-r4b', name:'បន្ទប់ទី៤', nameEn:'Room 4',
+            type:'class', label:'Level1 Afternoon',
+            classes: ['new-f3-r4']
+          },
         ]
       },
     ]
@@ -465,38 +527,254 @@ const BUILDINGS = [
     floors: [
       {
         id: 'new-f1', name: 'ជាន់ទី១', nameEn: 'Floor 1',
-        rooms: [] // no classrooms
+        rooms: [
+          {
+            id:'new-f1-r1', name:'បន្ទប់ទី១', nameEn:'Room 1',
+            type:'class', label:'Level2 + Level1 Morning',
+            classes: ['new-f3-r5','new-f3-r3']
+          },
+          {
+            id:'new-f1-r2', name:'បន្ទប់ទី២', nameEn:'Room 2',
+            type:'class', label:'Foundation 2 (Morning+Afternoon)',
+            classes: ['new-f2-r3','new-f2-r4']
+          },
+        ]
       },
       {
         id: 'new-f2', name: 'ជាន់ទី២', nameEn: 'Floor 2',
         rooms: [
-          {id:'new-f2-r1', name:'បន្ទប់ ១', nameEn:'Level1(Morning)', type:'class'},
-          {id:'new-f2-r2', name:'បន្ទប់ ២', nameEn:'Level2', type:'class'},
+          {id:'new-f2-r1b', name:'បន្ទប់ទី១', nameEn:'Room 1', type:'null', label:'(Null)', classes:[]},
+          {id:'new-f2-r2b', name:'បន្ទប់ទី២', nameEn:'Room 2', type:'null', label:'(Null)', classes:[]},
         ]
       },
       {
         id: 'new-f3', name: 'ជាន់ទី៣', nameEn: 'Floor 3',
         rooms: [
-          {id:'new-f3-r1', name:'បន្ទប់ ១', nameEn:'Room 1', type:'class'},
-          {id:'new-f3-r2', name:'បន្ទប់ ២', nameEn:'Room 2', type:'class'},
+          {id:'new-f3-r1b', name:'បន្ទប់ទី១', nameEn:'Room 1', type:'null', label:'(Null)', classes:[]},
+          {id:'new-f3-r2b', name:'បន្ទប់ទី២', nameEn:'Room 2', type:'null', label:'(Null)', classes:[]},
         ]
       },
     ]
   },
 ];
 
+// Class name lookup map (classId -> display name)
+const CLASS_NAMES = {
+  'old-f1-r1': 'មត្តេយ្យមធ្យម (ព្រឹក)',
+  'old-f1-r2': 'មត្តេយ្យមធ្យម (រសៀល)',
+  'old-f1-r3': 'មត្តេយ្យខ្ពស់ (ព្រឹក)',
+  'old-f1-r4': 'មត្តេយ្យខ្ពស់ (រសៀល)',
+  'old-f2-r1': 'ថ្នាក់ទី១ (ព្រឹក)',
+  'old-f2-r2': 'ថ្នាក់ទី១ (រសៀល)',
+  'old-f2-r3': 'ថ្នាក់ទី២ (ព្រឹក)',
+  'old-f2-r4': 'ថ្នាក់ទី២ (រសៀល)',
+  'old-f3-r1': 'ថ្នាក់ទី៣ (រសៀល)',
+  'old-f3-r2a': 'ថ្នាក់ទី៤',
+  'old-f3-r2b': 'ថ្នាក់ទី៥',
+  'old-f3-r3': 'មត្តេយ្យទាប (ព្រឹក)',
+  'old-f3-r4': 'មត្តេយ្យទាប (រសៀល)',
+  'new-f2-r1': 'Fount1 Morning',
+  'new-f2-r2': 'Fount1 Evening',
+  'new-f2-r3': 'Fount2 Morning',
+  'new-f2-r4': 'Fount2 Afternoon',
+  'new-f3-r1': 'Nursery Morning',
+  'new-f3-r2': 'Nursery Afternoon',
+  'new-f3-r3': 'Level1 Morning',
+  'new-f3-r4': 'Level1 Afternoon',
+  'new-f3-r5': 'Level 2',
+};
 // ════════════════════════════════════════
 // DATA (persisted via localStorage)
 // ════════════════════════════════════════
+// ── Pre-seeded student database ──────────────────────────────────────────────
+const SEED_STUDENTS = {
+  'old-f1-r1': [
+    {id:'64',name:'ឃុន ទេពង្ស',sex:'M'},{id:'121',name:'នឿន វឌ្ឍនា',sex:'M'},
+    {id:'128',name:'ពិសិទ្អ ច័ន្ទវឌ្ឃ',sex:'M'},{id:'141',name:'ហេង សាជីង',sex:'F'},
+    {id:'132',name:'សុ បញ្ញា មុនិរាជ',sex:'M'},{id:'67a',name:'ឈឿន ប៊ុនធឿនពុទ្ធិ',sex:'M'},
+    {id:'173',name:'សាន្ត លីប៉េង',sex:'M'},{id:'163',name:'អេង លីឆេង',sex:'M'},
+    {id:'179',name:'ចន្ថា វឌ្ឍនា',sex:'M'},{id:'162',name:'យ៉ាន់ សុខឡេង',sex:'M'},
+    {id:'s000a',name:'សាន់ គីមប៉',sex:'M'}
+  ],
+  'old-f1-r2': [
+    {id:'139',name:'ហ៊ឺម ម៉ីអ៊ិ',sex:'M'},{id:'146',name:'លន វេស្សភូ',sex:'M'},
+    {id:'102',name:'សំណាង វីរៈបុត្រ',sex:'M'},{id:'67b',name:'ឈឿន ប៊ុនធឿនពុទ្ធិ',sex:'M'},
+    {id:'87',name:'អ៊ុំ រតនាសិទ្ធីការ',sex:'F'},{id:'113',name:'ស៊ីម សិទ្ធីការ',sex:'F'},
+    {id:'164',name:'អ៊ូសុវណ្ណ វេហា',sex:'M'},{id:'177a',name:'តាំង ហ៊ួយលីន',sex:'F'},
+    {id:'165',name:'លឹម លីម៉េងគ័ង្គ',sex:'M'}
+  ],
+  'old-f1-r3': [
+    {id:'29a',name:'ខាន់ មុនីវល្លភា',sex:'F'},{id:'101',name:'ឈុំ វីរ់សិទ្ធ',sex:'M'},
+    {id:'65',name:'និត សុធារ៉ា',sex:'M'},{id:'78a',name:'នី លីជីង',sex:'F'},
+    {id:'117',name:'ហ៊ុន រាណ្ណជេណស្ដា',sex:'M'},{id:'47a',name:'បុណ្ណជេ ជេននី',sex:'F'},
+    {id:'14a',name:'ឃុន ទេពី',sex:'F'},{id:'62a',name:'រិទ្ធី ពិស្សុតសុក្រឹត',sex:'M'},
+    {id:'49a',name:'ងិន ទៀនវិន',sex:'M'},{id:'107',name:'សុភក្រ័ វរៈសិទ្ធ',sex:'M'},
+    {id:'170',name:'អុលវឿន ដាវីន',sex:'F'},{id:'137a',name:'សឿន ចាន់សុមេធា',sex:'F'},
+    {id:'1a',name:'ប៊ុនរីន ខេមរា',sex:'M'}
+  ],
+  'old-f1-r4': [
+    {id:'54',name:'យន់ លីហេង',sex:'M'},{id:'75a',name:'វិន បញ្ញាវ័ន្ត',sex:'M'},
+    {id:'90a',name:'សូ រស្មីពនិតា',sex:'F'},{id:'50',name:'សូយ រក្សា',sex:'M'},
+    {id:'72a',name:'អ៊ូ សុខអាមី',sex:'F'},{id:'137b',name:'សឿន ចាន់សុមេធា',sex:'F'},
+    {id:'176',name:'ប៉ឹម ម៉ីជូ',sex:'F'},{id:'85a',name:'សេរី ចន្ទវឌ្ឍនា',sex:'M'},
+    {id:'161',name:'លីម ហ៊ីប៉',sex:'M'},{id:'55a',name:'អ៊ា ជីងហ័រ',sex:'F'},
+    {id:'79',name:'មិត្ត ម៉េងហេង',sex:'M'},{id:'74a',name:'ចាន់នី ស៊ូសាន់ណា',sex:'F'}
+  ],
+  'old-f2-r1': [
+    {id:'75b',name:'ឆន វិរៈសិទ្ធ',sex:'M'},{id:'47b',name:'ជាឡិច កូលីន',sex:'M'},
+    {id:'92',name:'សុបញ្ញា សោម៉ា',sex:'F'},{id:'83',name:'ភឺន ថិរាយុ',sex:'M'},
+    {id:'69',name:'លី ឆាយឈ័ន',sex:'M'},{id:'77',name:'វុឌ្ឍី ដាវីកា',sex:'F'},
+    {id:'93',name:'អ៊ឹម រោចនា',sex:'F'},{id:'72b',name:'វង្ស ដារ៉ាវីន',sex:'M'},
+    {id:'95',name:'ចាវ វិនហាវ',sex:'M'},{id:'80',name:'ងួន បញ្ញាពុទ្ធិស័ក្តិ',sex:'M'}
+  ],
+  'old-f2-r2': [
+    {id:'88a',name:'ចំរើន ចន្ទឧត្តម',sex:'M'},{id:'91',name:'ប៊ូ សាធុការ',sex:'F'},
+    {id:'82a',name:'សេន យ៉ាស្មីនណា',sex:'F'},{id:'85b',name:'ដន សុភ័ណ្ឌម៉ូនីកា',sex:'F'},
+    {id:'78b',name:'ស៊្រាង សៀវហ្វុង',sex:'F'},{id:'73',name:'ហេង ម៉ីអ៊ិ',sex:'F'},
+    {id:'74b',name:'អឿន ពៅវល័ក្ខ',sex:'F'},{id:'70a',name:'រ័ត្ន រ៉ាថេប',sex:'M'}
+  ],
+  'old-f2-r3': [
+    {id:'21',name:'ចន្ថា លីតា',sex:'F'},{id:'20',name:'ពៅ សុខចិន',sex:'M'},
+    {id:'17',name:'ណារ៉ា ហេងលី',sex:'M'},{id:'23',name:'សុខ សម្បត្តិ',sex:'M'},
+    {id:'22',name:'សុខ ដាលីស',sex:'F'},{id:'29b',name:'ស្រស់ រីហ្សា',sex:'F'},
+    {id:'41',name:'ប៉ុន រីយ៉ា',sex:'F'},{id:'39',name:'ចន្ទ សុផាយ៉ាមេឃ',sex:'M'},
+    {id:'s00a',name:'វ៉ាត់ មុន្នី',sex:'F'}
+  ],
+  'old-f2-r4': [
+    {id:'59',name:'អុង បញ្ញារ័ត្ន',sex:'M'},{id:'31',name:'មិត្ត ម៉េងហួរ',sex:'M'},
+    {id:'14b',name:'យស់ នរិន្ទ',sex:'M'},{id:'33',name:'វង់ ពុទ្ធិតា',sex:'F'},
+    {id:'62b',name:'សូយ បញ្ញា',sex:'M'},{id:'40',name:'សេង សាណា',sex:'F'},
+    {id:'30',name:'ស៊នវីរៈ បញ្ញាទេពី',sex:'F'},{id:'27',name:'ប៊ូ តាម៉ា',sex:'M'},
+    {id:'65a',name:'កែវ មុន្នីឧត្តម',sex:'M'},{id:'56',name:'វន្តវិន ថាណា',sex:'F'},
+    {id:'36',name:'ហាន ស៊ីវហ័រ',sex:'F'}
+  ],
+  'old-f3-r1': [
+    {id:'9',name:'កែវ វីនសុឧត្តតារា',sex:'F'},{id:'28',name:'ឈុនតា រតនៈខុនដូ',sex:'F'},
+    {id:'10',name:'យ៉ា ពេជ្រម៉ូនីកា',sex:'F'},{id:'15',name:'លីម ពុទ្ធិរាជ',sex:'M'},
+    {id:'3',name:'ឡ ស៊ីវហ៊ួយ',sex:'F'},{id:'2',name:'ឡាយ មុនិចិន្ដា',sex:'F'},
+    {id:'24',name:'អោក និសិ្សត',sex:'M'},{id:'44',name:'ចំរើន ម៉ានីតា',sex:'F'}
+  ],
+  'old-f3-r2a': [
+    {id:'1b',name:'ឡាយ ភារ៉ាដាវីឌ',sex:'M'},{id:'42',name:'វង្ស មុនីកញ្ចនា',sex:'F'}
+  ],
+  'old-f3-r2b': [
+    {id:'43',name:'ពៅ សុនីតា',sex:'F'},{id:'4a',name:'ឡ សុវណ្ណហាន់ណា',sex:'F'}
+  ],
+  'old-f3-r3': [
+    {id:'147a',name:'សុភក្រ វីរបុត្រ',sex:'M'},{id:'166a',name:'លីណា រ័ត្នហុងស័ក្កិ',sex:'M'},
+    {id:'160',name:'ថូ សិទ្ធីយូណា',sex:'F'},{id:'175a',name:'សុគន្ធ បញ្ញាស័ក',sex:'M'},
+    {id:'s000b',name:'សុីម សរឧត្តម',sex:'M'},{id:'s000c',name:'និត សុធារាជ',sex:'M'},
+    {id:'s000d',name:'វ៉េត នីរីតា',sex:'F'}
+  ],
+  'old-f3-r4': [
+    {id:'175b',name:'ហេង ជ័រមុីង',sex:'F'},{id:'s000e',name:'សាយ សុខហេង',sex:'M'},
+    {id:'181',name:'ឈន ចេស្ដា',sex:'M'},{id:'s000f',name:'លាង លក្សុិកញ្ចនា',sex:'M'},
+    {id:'177b',name:'វាសនា ពេជ្រសុម៉ាលី',sex:'F'}
+  ],
+  'new-f2-r1': [
+    {id:'82b',name:'Chhang Singreay',sex:'F'},{id:'149',name:'Thi Sovann Sithika',sex:'F'},
+    {id:'143',name:'Phan Sokheng',sex:'M'},{id:'133',name:'Soth Linprossith',sex:'M'},
+    {id:'134a',name:'Eab Liying',sex:'F'},{id:'88b',name:'Sim Sithika',sex:'F'},
+    {id:'134b',name:'Serey Chanvatthana',sex:'M'},{id:'88c',name:'Hy Meyich',sex:'F'},
+    {id:'134c',name:'Channy Sisanna',sex:'F'},{id:'88d',name:'Chanmroeun Chanoudom',sex:'M'},
+    {id:'182',name:'Tang Huylin',sex:'F'},{id:'f1ma',name:'Kon Vichearakalyany',sex:'F'}
+  ],
+  'new-f2-r2': [
+    {id:'116a',name:'In Tiengvitu',sex:'M'},{id:'58a',name:'Bunroeun Khemara',sex:'M'},
+    {id:'116b',name:'Chhorn Mengsin',sex:'M'},{id:'58b',name:'Ngoun Kimhab',sex:'M'},
+    {id:'145',name:'Chhay Pinging',sex:'F'},{id:'125',name:'Panha Petra',sex:'F'},
+    {id:'90b',name:'Chomreun Ruonrithirach',sex:'M'},{id:'116c',name:'Run Raksmey',sex:'M'},
+    {id:'90c',name:'Huy Vannrothsetha',sex:'M'},{id:'116d',name:'Nit Sotheara',sex:'M'},
+    {id:'159',name:'Thon Sigech',sex:'F'}
+  ],
+  'new-f2-r3': [
+    {id:'86',name:'Theng Mengly',sex:'M'},{id:'f2a',name:'Sreang Sievfong',sex:'F'},
+    {id:'f2b',name:'Heng Meyich',sex:'F'},{id:'f2c',name:'Eurn Povoleak',sex:'F'},
+    {id:'f2d',name:'Han Sivhor',sex:'F'},{id:'f2e',name:'Roth Sovannchanthnaka',sex:'M'},
+    {id:'f2f',name:'Chomreun Manita',sex:'F'},{id:'70b',name:'Roth Ratheb',sex:'M'},
+    {id:'f2g',name:'Chomreun Chanoudom',sex:'F'}
+  ],
+  'new-f2-r4': [
+    {id:'68',name:'Song Rithysak',sex:'M'},{id:'f2h',name:'Pov Sokchen',sex:'M'},
+    {id:'66',name:'Bunleng Aidek',sex:'M'},{id:'67c',name:'Pheak Speeddy',sex:'M'},
+    {id:'f2i',name:'Em Raechna',sex:'F'},{id:'f2j',name:'Ngoun Panhaputhysak',sex:'M'},
+    {id:'f2k',name:'Chen Kolin',sex:'M'},{id:'f2l',name:'Nara Hengly',sex:'M'},
+    {id:'f2m',name:'Chan Vireasith',sex:'M'},{id:'f2n',name:'Sok Sambath',sex:'M'},
+    {id:'f2o',name:'Sok Dalls',sex:'F'},{id:'f2p',name:'Ly Chaychon',sex:'M'}
+  ],
+  'new-f3-r1': [
+    {id:'148a',name:'Beres Maikeus',sex:'M'},{id:'144',name:'Heng Santipheap',sex:'M'},
+    {id:'157',name:'Doung Sometha',sex:'M'},{id:'183',name:'Thong Fongmeng',sex:'M'},
+    {id:'158',name:'Punlok Viraksith',sex:'M'},{id:'172',name:'Reathana Sievle',sex:'F'},
+    {id:'180',name:'Rat Pichmorakot',sex:'F'},{id:'178',name:'Livthy Jutima',sex:'F'},
+    {id:'184',name:'Ho Liping',sex:'M'},{id:'174',name:'Vichika Munnitepey',sex:'F'},
+    {id:'185',name:'Yem Putthivong',sex:'M'},{id:'171',name:'Song Siriboth',sex:'M'},
+    {id:'nma',name:'Van Kanha',sex:'F'}
+  ],
+  'new-f3-r2': [
+    {id:'148b',name:'Beres Maikeus',sex:'M'},{id:'147b',name:'Sopheak Virakboth',sex:'M'},
+    {id:'150',name:'Vet Nirita',sex:'F'},{id:'166b',name:'Piseth Chanvatthana',sex:'M'},
+    {id:'166c',name:'Lina Hongsakiathiphu',sex:'M'},{id:'nab',name:'Chhum Visoth',sex:'M'},
+    {id:'nac',name:'Chomroeun Chanchanum',sex:'M'},{id:'nad',name:'Ouk Chanbonmy',sex:'F'}
+  ],
+  'new-f3-r3': [
+    {id:'L1a',name:'Pov Sunita',sex:'F'},{id:'L1b',name:'Kaev Vinsouottara',sex:'F'},
+    {id:'L1c',name:'Chhuonta Rataknakhondou',sex:'F'},{id:'64a',name:'Leang Voatchhanathnu',sex:'M'},
+    {id:'L1d',name:'Ya Pichmonika',sex:'F'},{id:'L1e',name:'Lim Puthireach',sex:'M'},
+    {id:'L1f',name:'Lor Sivhuoy',sex:'F'},{id:'L1g',name:'Lay Monichenda',sex:'F'},
+    {id:'L1h',name:'Ork Niset',sex:'M'},{id:'L1i',name:'Chan Sophayameakh',sex:'M'},
+    {id:'L1j',name:'Sonvirak Panhatepey',sex:'F'}
+  ],
+  'new-f3-r4': [
+    {id:'L1k',name:'Aok Outtom',sex:'M'},{id:'L1l',name:'Nara Henglay',sex:'M'},
+    {id:'62c',name:'Chhuk Chenlong',sex:'M'}
+  ],
+  'new-f3-r5': [
+    {id:'48',name:'Sopheak Titthdana',sex:'F'},{id:'63',name:'Neourn Vathanac',sex:'M'},
+    {id:'49',name:'Sopheak Rattank',sex:'M'},{id:'61',name:'Phal Sovann',sex:'M'},
+    {id:'53',name:'Hong Sothinal',sex:'M'},{id:'55b',name:'Theng Julinh',sex:'F'},
+    {id:'1c',name:'Lay Phearadavid',sex:'M'},{id:'4b',name:'La Sovannhannah',sex:'F'}
+  ]
+};
+function getDefaultStudents() {
+  const result = {};
+  for(const [roomId, list] of Object.entries(SEED_STUDENTS)) {
+    result[roomId] = list.map(s => ({
+      id: s.id, name: s.name, sex: s.sex,
+      dateAdded: '2025-08-01', status: 'active'
+    }));
+  }
+  return result;
+}
+
 function loadData() {
   try {
-    const raw = localStorage.getItem('schoolData_v3');
+    const raw = localStorage.getItem('schoolData_v6');
     if(raw) return JSON.parse(raw);
   } catch(e) {}
-  return { students: {}, activityLog: [] };
+  // Check old version and migrate
+  try {
+    const oldRaw = localStorage.getItem('schoolData_v5');
+    if(oldRaw) {
+      const old = JSON.parse(oldRaw);
+      // Migrate old-f3-r2 → old-f3-r2a + old-f3-r2b
+      if(old.students && old.students['old-f3-r2']) {
+        const all = old.students['old-f3-r2'];
+        // Grade 5 students: ពៅ សុនីតា (id:43) and ឡ សុវណ្ណហាន់ណា (id:4a)
+        const grade5Ids = ['43','4a'];
+        old.students['old-f3-r2a'] = all.filter(s => !grade5Ids.includes(s.id));
+        old.students['old-f3-r2b'] = all.filter(s => grade5Ids.includes(s.id));
+        delete old.students['old-f3-r2'];
+      }
+      localStorage.setItem('schoolData_v6', JSON.stringify(old));
+      return old;
+    }
+  } catch(e) {}
+  // First time: seed with real student data
+  return { students: getDefaultStudents(), activityLog: [] };
 }
 function saveData() {
-  localStorage.setItem('schoolData_v3', JSON.stringify({ students, activityLog }));
+  localStorage.setItem('schoolData_v6', JSON.stringify({ students, activityLog }));
 }
 
 let { students, activityLog } = loadData();
@@ -595,7 +873,8 @@ function buildSidebar() {
 function updateAllBadges() {
   let total = 0;
   BUILDINGS.forEach(b => b.floors.forEach(f => f.rooms.forEach(r => {
-    const c = getRoomStudents(r.id).length;
+    const ids=(r.classes&&r.classes.length)?r.classes:(r.type!=='null'?[r.id]:[]);
+    const c=ids.reduce((s,cid)=>s+getRoomStudents(cid).length,0);
     total += c;
     const el = document.getElementById('nav-count-'+r.id);
     if(el) el.textContent = c;
@@ -635,19 +914,95 @@ function openRoom(roomId, btn) {
   if(btn) btn.classList.add('active');
   else { const el=document.getElementById('nav-'+roomId); if(el) el.classList.add('active'); }
   currentRoomId = roomId;
-
-  const room     = findRoom(roomId);
-  const floor    = findFloor(roomId);
-  const building = findBuilding(roomId);
-  document.getElementById('room-title').textContent =
-    (room.type==='care'?'🏥':'📚') + ' ' + room.nameEn + ' — ' + room.name;
+  currentClassId = null;
+  const room=findRoom(roomId), floor=findFloor(roomId), building=findBuilding(roomId);
+  const icon = room.type==='care'?'🏥':room.type==='null'?'🚫':'📚';
+  document.getElementById('room-title').textContent = icon+' '+room.name;
   document.getElementById('room-breadcrumb').textContent =
-    building.nameEn + ' › ' + floor.nameEn + ' › ' + room.nameEn;
-  document.getElementById('modal-room-name').textContent = room.nameEn + ' (' + room.name + ')';
+    building.name+' › '+floor.name+' › '+room.name+(room.label?' — '+room.label:'');
+  document.getElementById('room-actions').style.display='none';
 
-  renderRoomStats();
-  renderRoomTable();
+  if(room.type==='null') {
+    document.getElementById('class-selector-panel').style.display='none';
+    document.getElementById('class-view-panel').style.display='block';
+    document.getElementById('back-btn').style.display='none';
+    document.getElementById('class-view-title').textContent='No classes in this room';
+    document.getElementById('class-view-sub').textContent='';
+    document.getElementById('room-stats').innerHTML='';
+    document.getElementById('room-tbody').innerHTML='<tr class="empty-row"><td colspan="7">Null room</td></tr>';
+    return;
+  }
+
+  if(room.type==='care') {
+    currentClassId=roomId;
+    document.getElementById('class-selector-panel').style.display='none';
+    document.getElementById('class-view-panel').style.display='block';
+    document.getElementById('back-btn').style.display='none';
+    document.getElementById('class-view-title').textContent=room.label||room.name;
+    document.getElementById('class-view-sub').textContent='';
+    document.getElementById('room-actions').style.display='flex';
+    document.getElementById('modal-room-name').textContent=room.name;
+    renderRoomStats(); renderRoomTable(); return;
+  }
+
+  const classes = room.classes||[];
+  if(classes.length===1) { openClass(classes[0]); return; }
+  if(classes.length===0) {
+    currentClassId=roomId;
+    document.getElementById('class-selector-panel').style.display='none';
+    document.getElementById('class-view-panel').style.display='block';
+    document.getElementById('back-btn').style.display='none';
+    document.getElementById('class-view-title').textContent=room.name;
+    document.getElementById('class-view-sub').textContent='';
+    document.getElementById('room-actions').style.display='flex';
+    document.getElementById('modal-room-name').textContent=room.name;
+    renderRoomStats(); renderRoomTable(); return;
+  }
+
+  // Show class selector
+  document.getElementById('class-selector-panel').style.display='block';
+  document.getElementById('class-view-panel').style.display='none';
+  document.getElementById('class-selector-title').textContent='📋 រើសថ្នាក់ក្នុង '+room.name;
+  const grid=document.getElementById('class-selector-grid');
+  grid.innerHTML=classes.map(cid=>{
+    const cname=CLASS_NAMES[cid]||cid;
+    const active=getRoomStudents(cid);
+    const m=active.filter(s=>s.sex==='M').length, f=active.filter(s=>s.sex==='F').length;
+    return '<div onclick="openClass(\''+cid+'\')" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:14px 16px;cursor:pointer;transition:all 0.15s;" '+
+      'onmouseover="this.style.background=\'var(--blue-bg)\';this.style.borderColor=\'var(--blue)\'" '+
+      'onmouseout="this.style.background=\'var(--surface2)\';this.style.borderColor=\'var(--border2)\'">' +
+      '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">📚 '+cname+'</div>'+
+      '<div style="font-size:12px;color:var(--text2);">' +
+        '<span style="color:var(--blue);">'+m+'M</span>' +
+        '<span style="margin:0 4px;">·</span>' +
+        '<span style="color:var(--pink);">'+f+'F</span>' +
+        '<span style="margin:0 4px;">·</span>' +
+        '<strong>'+active.length+'</strong> students</div></div>';
+  }).join('');
 }
+
+function openClass(classId) {
+  currentClassId=classId;
+  const cname=CLASS_NAMES[classId]||classId;
+  const room=findRoom(currentRoomId);
+  document.getElementById('class-selector-panel').style.display='none';
+  document.getElementById('class-view-panel').style.display='block';
+  document.getElementById('back-btn').style.display=(room&&room.classes&&room.classes.length>1)?'inline-flex':'none';
+  document.getElementById('class-view-title').textContent=cname;
+  document.getElementById('class-view-sub').textContent=room?'('+room.name+')':'';
+  document.getElementById('room-actions').style.display='flex';
+  document.getElementById('modal-room-name').textContent=cname;
+  renderRoomStats(); renderRoomTable();
+}
+
+function backToClassSelector() {
+  currentClassId=null;
+  document.getElementById('class-selector-panel').style.display='block';
+  document.getElementById('class-view-panel').style.display='none';
+  document.getElementById('room-actions').style.display='none';
+}
+
+let currentClassId = null;
 
 // ════════════════════════════════════════
 // OVERVIEW
@@ -655,11 +1010,12 @@ function openRoom(roomId, btn) {
 function renderOverview() {
   let totalStudents = 0, totalM = 0, totalF = 0, totalRooms = 0;
   BUILDINGS.forEach(b => b.floors.forEach(f => f.rooms.forEach(r => {
-    const a = getRoomStudents(r.id);
-    totalStudents += a.length;
-    totalM += a.filter(s=>s.sex==='M').length;
-    totalF += a.filter(s=>s.sex==='F').length;
     totalRooms++;
+    const ids=(r.classes&&r.classes.length)?r.classes:(r.type!=='null'?[r.id]:[]);
+    ids.forEach(cid=>{
+      const a=getRoomStudents(cid);
+      totalStudents+=a.length; totalM+=a.filter(s=>s.sex==='M').length; totalF+=a.filter(s=>s.sex==='F').length;
+    });
   })));
 
   document.getElementById('overview-stats').innerHTML = `
@@ -682,15 +1038,15 @@ function renderOverview() {
       html += `<p style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;">${f.nameEn}</p>
         <div class="building-overview" style="margin-bottom:18px;">`;
       f.rooms.forEach(r => {
-        const active = getRoomStudents(r.id);
-        const m = active.filter(s=>s.sex==='M').length;
-        const fc = active.filter(s=>s.sex==='F').length;
-        const mPct = active.length ? Math.round(m/active.length*100) : 50;
-        const isCare = r.type==='care';
+        const ids=(r.classes&&r.classes.length)?r.classes:(r.type!=='null'?[r.id]:[]);
+        let active=[]; ids.forEach(cid=>active.push(...getRoomStudents(cid)));
+        const allM=active.filter(s=>s.sex==='M').length, allF=active.filter(s=>s.sex==='F').length;
+        const mPct=active.length?Math.round(allM/active.length*100):50;
+        const isCare=r.type==='care';
         html += `<div class="room-card" onclick="openRoom('${r.id}')">
           <div class="room-card-header">
             <h4>${isCare?'🏥':'📚'} ${r.nameEn} <span style="font-weight:400;font-size:11px;color:var(--text3);">${r.name}</span></h4>
-            <span class="badge ${isCare?'badge-special':'badge-room'}">${active.length} students</span>
+            <span class="badge ${r.type==='care'?'badge-special':'badge-room'}">${active.length} students</span>
           </div>
           <div class="room-bar">
             <div class="bar-m" style="width:${mPct}%;"></div>
@@ -718,21 +1074,18 @@ function renderOverview() {
 // ROOM PAGE
 // ════════════════════════════════════════
 function renderRoomStats() {
-  const roomId = currentRoomId;
-  const all    = getRoomStudents(roomId);
-  const del    = getRoomStudents(roomId, 'deleted');
-  const m = all.filter(s=>s.sex==='M').length;
-  const f = all.filter(s=>s.sex==='F').length;
-  document.getElementById('room-stats').innerHTML = `
-    <div class="stat-card"><div class="s-label">Active</div><div class="s-num">${all.length}</div></div>
-    <div class="stat-card blue"><div class="s-label">Male</div><div class="s-num">${m}</div></div>
-    <div class="stat-card pink"><div class="s-label">Female</div><div class="s-num">${f}</div></div>
-    <div class="stat-card amber"><div class="s-label">Removed</div><div class="s-num">${del.length}</div></div>
-  `;
+  const cid=currentClassId||currentRoomId;
+  const all=getRoomStudents(cid), del=getRoomStudents(cid,'deleted');
+  const m=all.filter(s=>s.sex==='M').length, f=all.filter(s=>s.sex==='F').length;
+  document.getElementById('room-stats').innerHTML =
+    '<div class="stat-card"><div class="s-label">Active</div><div class="s-num">'+all.length+'</div></div>'+
+    '<div class="stat-card blue"><div class="s-label">Male</div><div class="s-num">'+m+'</div></div>'+
+    '<div class="stat-card pink"><div class="s-label">Female</div><div class="s-num">'+f+'</div></div>'+
+    '<div class="stat-card amber"><div class="s-label">Removed</div><div class="s-num">'+del.length+'</div></div>';
 }
 
 function renderRoomTable() {
-  const roomId = currentRoomId;
+  const roomId = currentClassId || currentRoomId;
   const q   = (document.getElementById('search-input').value||'').toLowerCase();
   const fs  = document.getElementById('filter-sex').value;
   const fst = document.getElementById('filter-status').value;
@@ -801,7 +1154,6 @@ function addInputRow() {
 function removeInputRow(n) {
   const tr = document.getElementById('add-row-'+n);
   if(tr) tr.remove();
-  // renumber
   document.querySelectorAll('#add-rows-tbody tr').forEach((r,i) => {
     const num = r.querySelector('.row-num');
     if(num) num.textContent = i+1;
@@ -832,10 +1184,9 @@ function submitAddStudents() {
     const name = tr.querySelector('[data-field="name"]').value.trim();
     const sid  = tr.querySelector('[data-field="sid"]').value.trim();
     const sex  = tr.querySelector('[data-field="sex"]').value;
-    if(!name && !sid) return; // skip empty rows
+    if(!name && !sid) return;
     if(!name) { errors.push(`Row ${idx+1}: Missing name`); return; }
     if(!sid)  { errors.push(`Row ${idx+1}: Missing ID`); return; }
-    // Check duplicate across all rooms
     let dupFound = false;
     for(const rId in students) {
       if(students[rId].find(s=>s.id===sid)) { errors.push(`Row ${idx+1}: ID "${sid}" already exists`); dupFound=true; break; }
@@ -850,7 +1201,7 @@ function submitAddStudents() {
   }
   if(!toAdd.length) { errEl.textContent='Please fill at least one row'; errEl.style.display='block'; return; }
 
-  const roomId = currentRoomId;
+  const roomId = currentClassId || currentRoomId;
   if(!students[roomId]) students[roomId] = [];
   const dateAdded = today();
   const time = nowTime();
@@ -999,44 +1350,39 @@ function clearAllData() {
 // ════════════════════════════════════════
 // TELEGRAM HELPERS
 // ════════════════════════════════════════
-function pad(str, len) {
-  str = String(str);
-  // strip HTML tags for length calculation
-  const plain = str.replace(/<[^>]*>/g,'');
-  if(plain.length >= len) return str;
-  return str + ' '.repeat(len - plain.length);
+function visLen(s) {
+  s = String(s).replace(/<[^>]*>/g, '');
+  let len = 0;
+  for (const ch of s) {
+    const cp = ch.codePointAt(0);
+    if (cp >= 0x1780 && cp <= 0x17FF) len += 2;
+    else if (cp >= 0x19E0 && cp <= 0x19FF) len += 2;
+    else len += 1;
+  }
+  return len;
+}
+function padStr(s, width) {
+  s = String(s);
+  const vl = visLen(s);
+  const spaces = Math.max(0, width - vl);
+  return s + ' '.repeat(spaces);
 }
 function buildTable(headers, rows) {
-  // Calculate widths ignoring HTML tags
-  function visLen(s){ return String(s).replace(/<[^>]*>/g,'').length; }
-  const widths = headers.map((h,i) => {
+  const widths = headers.map((h, i) => {
     let max = visLen(h);
-    rows.forEach(r => { const v = visLen(r[i]||''); if(v>max) max=v; });
+    rows.forEach(r => { const v = visLen(String(r[i]||'')); if(v>max) max=v; });
     return max;
   });
-  const top  = '┌' + widths.map(w=>'─'.repeat(w+2)).join('┬') + '┐';
-  const mid  = '├' + widths.map(w=>'─'.repeat(w+2)).join('┼') + '┤';
-  const bot  = '└' + widths.map(w=>'─'.repeat(w+2)).join('┴') + '┘';
-  const fmtRow = cells => '│' + cells.map((c,i)=>{
-    const s = String(c);
-    const vl = visLen(s);
-    return ' ' + s + ' '.repeat(Math.max(0, widths[i]-vl)) + ' ';
-  }).join('│') + '│';
-  return [top, fmtRow(headers), mid, ...rows.map(r=>fmtRow(r.map(String))), bot].join('\n');
+  const top    = '┌' + widths.map(w => '─'.repeat(w+2)).join('┬') + '┐';
+  const mid    = '├' + widths.map(w => '─'.repeat(w+2)).join('┼') + '┤';
+  const bot    = '└' + widths.map(w => '─'.repeat(w+2)).join('┴') + '┘';
+  const fmtRow = cells => '│' + cells.map((c, i) => ' ' + padStr(String(c), widths[i]) + ' ').join('│') + '│';
+  return [top, fmtRow(headers), mid, ...rows.map(r => fmtRow(r.map(String))), bot].join('\n');
 }
 
-// Send plain text (monospace via backtick code block via Markdown)
 async function tgSendPlain(header, tableText, footer) {
-  // header = plain text lines before table
-  // tableText = the ASCII table (goes inside <pre>)
-  // footer = optional plain lines after table
   if(!tgToken || !tgChatId) { toast('Telegram not configured', 'error'); return {ok:false}; }
-  // Build HTML message: header as bold lines + <pre> table block
-  const headerHtml = header.split('\n').map(l => {
-    if(!l.trim()) return '';
-    return l;
-  }).join('\n');
-  let html = headerHtml;
+  let html = header;
   if(tableText) html += '\n<pre>' + tableText + '</pre>';
   if(footer)    html += '\n' + footer;
   try {
@@ -1048,13 +1394,6 @@ async function tgSendPlain(header, tableText, footer) {
     if(!data.ok) { console.error('TG error:', data); toast('Telegram error: ' + (data.description||''), 'error'); }
     return data;
   } catch(e) { toast('Network error', 'error'); return {ok:false}; }
-}
-async function tgSend(text) { return tgSendPlain(text, '', ''); }
-async function tgSend(text) { return tgSendPlain(text); }
-
-// Escape special chars for MarkdownV2
-function esc(s) {
-  return String(s).replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, '\\$&');
 }
 
 async function sendTelegramBulkAdd(toAdd, room, floor, building, dateAdded) {
@@ -1102,8 +1441,10 @@ async function sendTelegramRemove(s, room, floor, building) {
 
 async function sendRoomSummary() {
   if(!tgToken||!tgChatId) { toast('Configure Telegram in Settings first','error'); return; }
+  const cid=currentClassId||currentRoomId;
   const room=findRoom(currentRoomId), floor=findFloor(currentRoomId), building=findBuilding(currentRoomId);
-  const active=getRoomStudents(currentRoomId);
+  const cname=CLASS_NAMES[cid]||(room?room.name:cid);
+  const active=getRoomStudents(cid);
   const m=active.filter(s=>s.sex==='M').length, f=active.filter(s=>s.sex==='F').length;
   let n=1;
   const rows=active.map(s=>[String(n++),s.name,s.id,s.sex==='M'?'M':'F',s.dateAdded]);
@@ -1178,7 +1519,6 @@ document.addEventListener('keydown', e => {
 // ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
-// Auto-save default credentials to localStorage on first load
 if(!localStorage.getItem('tgToken')  && tgToken)  localStorage.setItem('tgToken',  tgToken);
 if(!localStorage.getItem('tgChatId') && tgChatId) localStorage.setItem('tgChatId', tgChatId);
 
