@@ -304,7 +304,7 @@ const BUILDINGS = [
       {
         id: 'old-f2', name: 'ជាន់ទី២', nameEn: 'Floor 2',
         rooms: [
-          { id: 'old-f2-r1', name: 'បន្ទប់ទី១', nameEn: 'Foundation 2 ', type: 'class', label: 'Foundation 2 (Morning + Afternoon)', classes: ['found2-m','found2-a'] },
+          { id: 'old-f2-r1', name: 'បន្ទប់ទី១', nameEn: 'Foundation 2', type: 'class', label: 'Foundation 2 (Morning + Afternoon)', classes: ['found2-m','found2-a'] },
           { id: 'old-f2-r2', name: 'បន្ទប់ទី២', nameEn: 'ថ្នាក់ទី៣', type: 'class', label: 'ថ្នាក់ទី៣', classes: ['grade3'] },
           { id: 'old-f2-r3', name: 'បន្ទប់ទី៣', nameEn: 'ថ្នាក់ទី៤ + ថ្នាក់ទី៥', type: 'class', label: 'ថ្នាក់ទី៤ + ថ្នាក់ទី៥', classes: ['grade4','grade5'] },
           { id: 'old-f2-r4', name: 'បន្ទប់ទី៤', nameEn: 'Room 4', type: 'null', label: '(Null)', classes: [] },
@@ -465,7 +465,7 @@ const SEED_STUDENTS = {
   'grade1-a': [
     {id:'88a',name:'ចំរើន ចន្ទឧត្តម',sex:'M'},{id:'91',name:'ប៊ូ សាធុការ',sex:'F'},
     {id:'82a',name:'សេន យ៉ាស្មីនណា',sex:'F'},{id:'85b',name:'ដន សុភ័ណ្ឌម៉ូនីកា',sex:'F'},
-    {id:'78b',name:'ស៊្រាង សៀវហ្វុង',sex:'F'},{id:'73',name:'ហេង ម៉ីអ៊ិ',sex:'F'},
+    {id:'78b',name:'ស្រាង សៀវហ្វុង',sex:'F'},{id:'73',name:'ហេង ម៉ីអ៊ិ',sex:'F'},
     {id:'74b',name:'អឿន ពៅវល័ក្ខ',sex:'F'},{id:'70a',name:'រ័ត្ន រ៉ាថេប',sex:'M'},
   ],
   'grade2-m': [
@@ -537,12 +537,8 @@ let currentRoomId = null, currentClassId = null, pendingDelKey = null;
 function today()   { return new Date().toISOString().slice(0, 10); }
 function nowTime() { return new Date().toTimeString().slice(0, 5); }
 function initials(name) { return name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase(); }
-// Strip trailing letters a/b/c/d from numeric IDs to get the base ID
-// e.g. "148a" → "148", "67b" → "67", "137a" → "137"
-// Non-numeric IDs like "f2a", "L1a", "s000a" are kept as-is (different students)
 function baseId(id) {
   const s = String(id);
-  // Only strip if the base part is purely numeric (e.g. "148a" → "148")
   const m = s.match(/^(\d+)[a-z]+$/i);
   return m ? m[1] : s;
 }
@@ -601,17 +597,13 @@ function buildSidebar() {
 }
 
 function updateAllBadges() {
-  // Per-room badge: count unique students by baseId within that room's classes
   BUILDINGS.forEach(b => b.floors.forEach(f => f.rooms.forEach(r => {
     const ids = (r.classes && r.classes.length) ? r.classes : (r.type !== 'null' ? [r.id] : []);
     const roomSeen = new Set();
-    ids.forEach(cid => {
-      getRoomStudents(cid).forEach(s => { roomSeen.add(baseId(s.id)); });
-    });
+    ids.forEach(cid => { getRoomStudents(cid).forEach(s => { roomSeen.add(baseId(s.id)); }); });
     const el = document.getElementById('nav-count-' + r.id);
     if (el) el.textContent = roomSeen.size;
   })));
-  // Global total: deduplicate across ALL classes by baseId
   const globalSet = new Set();
   BUILDINGS.forEach(b => b.floors.forEach(f => f.rooms.forEach(r => {
     const ids = (r.classes && r.classes.length) ? r.classes : (r.type !== 'null' ? [r.id] : []);
@@ -720,7 +712,6 @@ function backToClassSelector() {
 }
 
 function renderOverview() {
-  // Deduplicate globally by baseId so morning+afternoon students count once
   const globalSeen = new Set(), globalSeenM = new Set(), globalSeenF = new Set();
   let totalRooms = 0;
   BUILDINGS.forEach(b => b.floors.forEach(f => f.rooms.forEach(r => {
@@ -748,8 +739,7 @@ function renderOverview() {
       html += `<p style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;">${f.nameEn}</p><div class="building-overview" style="margin-bottom:18px;">`;
       f.rooms.forEach(r => {
         const ids = (r.classes && r.classes.length) ? r.classes : (r.type !== 'null' ? [r.id] : []);
-        // Deduplicate by baseId within this room (morning+afternoon = 1 student)
-        const seenBids = new Map(); // bid → student (keep first occurrence)
+        const seenBids = new Map();
         ids.forEach(cid => {
           getRoomStudents(cid).forEach(s => {
             const bid = baseId(s.id);
@@ -871,13 +861,9 @@ function submitAddStudents() {
   });
   saveData(); closeAddModal(); renderRoomStats(); renderRoomTable(); renderOverview(); updateAllBadges();
   toast(`✅ ${toAdd.length} student${toAdd.length > 1 ? 's' : ''} added`, 'success');
-  if (room && floor && building) sendTelegramBulkAdd(toAdd, room, floor, building, dateAdded);
+  if (room && floor && building) sendTelegramBulkAdd(toAdd, classId, room, floor, building, dateAdded);
 }
 
-// ════════════════════════════════════════
-// FIX: openDelModal uses classId for student lookup
-//       but uses currentRoomId for findRoom/findFloor/findBuilding
-// ════════════════════════════════════════
 function openDelModal(classId, studentId) {
   pendingDelKey = { classId, studentId };
   const s = (students[classId] || []).find(x => x.id === studentId);
@@ -897,7 +883,6 @@ function confirmDelete() {
   if (!s) { toast('Student not found', 'error'); closeDelModal(); return; }
   s.status = 'deleted'; s.dateRemoved = today();
   const time = nowTime();
-  // Use currentRoomId (real room ID) for findRoom/findFloor/findBuilding
   const room     = findRoom(currentRoomId)     || { nameEn: CLASS_NAMES[classId] || classId };
   const floor    = findFloor(currentRoomId)    || { nameEn: 'Unknown Floor' };
   const building = findBuilding(currentRoomId) || { nameEn: 'Unknown Building' };
@@ -905,7 +890,7 @@ function confirmDelete() {
     roomName: room.nameEn, floorName: floor.nameEn, buildingName: building.nameEn, date: s.dateRemoved, time });
   saveData(); closeDelModal(); renderRoomStats(); renderRoomTable(); renderOverview(); updateAllBadges();
   toast(`🚫 ${s.name} removed`);
-  sendTelegramRemove(s, room, floor, building);
+  sendTelegramRemove(s, classId, room, floor, building);
 }
 
 function renderLog() {
@@ -958,21 +943,9 @@ function clearAllData() {
   students = {}; activityLog = []; saveData(); buildSidebar(); renderOverview(); toast('All data cleared');
 }
 
-// ════════ Telegram helpers ════════
-function visLen(s) {
-  s = String(s).replace(/<[^>]*>/g, ''); let len = 0;
-  for (const ch of s) { const cp = ch.codePointAt(0); if (cp >= 0x1780 && cp <= 0x17FF) len += 2; else if (cp >= 0x19E0 && cp <= 0x19FF) len += 2; else len += 1; }
-  return len;
-}
-function padStr(s, width) { s = String(s); const spaces = Math.max(0, width - visLen(s)); return s + ' '.repeat(spaces); }
-function buildTable(headers, rows) {
-  const widths = headers.map((h, i) => { let max = visLen(h); rows.forEach(r => { const v = visLen(String(r[i] || '')); if (v > max) max = v; }); return max; });
-  const top = '┌' + widths.map(w => '─'.repeat(w+2)).join('┬') + '┐';
-  const mid = '├' + widths.map(w => '─'.repeat(w+2)).join('┼') + '┤';
-  const bot = '└' + widths.map(w => '─'.repeat(w+2)).join('┴') + '┘';
-  const fmtRow = cells => '│' + cells.map((c, i) => ' ' + padStr(String(c), widths[i]) + ' ').join('│') + '│';
-  return [top, fmtRow(headers), mid, ...rows.map(r => fmtRow(r.map(String))), bot].join('\n');
-}
+// ════════════════════════════════════════
+// TELEGRAM — FIXED (no table, clean list format)
+// ════════════════════════════════════════
 
 async function tgSend(text) {
   const token = localStorage.getItem('tgToken') || tgToken;
@@ -987,78 +960,145 @@ async function tgSend(text) {
   } catch(e) { return null; }
 }
 
-async function sendTelegramBulkAdd(toAdd, room, floor, building, dateAdded) {
+// ── ADD: list format, counts from correct classId ──
+async function sendTelegramBulkAdd(toAdd, classId, room, floor, building, dateAdded) {
   const token = localStorage.getItem('tgToken') || tgToken;
   const chatId = localStorage.getItem('tgChatId') || tgChatId;
   if (!token || !chatId) return;
-  const classId = currentClassId || currentRoomId;
-  const rs = getRoomStudents(classId), m = rs.filter(s => s.sex === 'M').length, f = rs.filter(s => s.sex === 'F').length;
+
+  // Count from the correct classId
+  const rs = getRoomStudents(classId);
+  const m = rs.filter(s => s.sex === 'M').length;
+  const f = rs.filter(s => s.sex === 'F').length;
+
   let n = 1;
-  const addTbl = buildTable(['No','Name','ID','Sex'], toAdd.map(s => [String(n++), s.name, s.id, s.sex === 'M' ? 'Male' : 'Female']));
-  const cntTbl = buildTable(['Room','Total','Male','Female'], [[room.nameEn, String(rs.length), String(m), String(f)]]);
-  const text = ['🏫 <b>School Floor – Student Update</b>', building.nameEn + ' › ' + floor.nameEn + ' › ' + room.nameEn,
-    '✅ <b>' + toAdd.length + ' New Student' + (toAdd.length > 1 ? 's' : '') + ' Added</b>',
-    '📅 ' + dateAdded + ' at ' + nowTime()].join('\n')
-    + '\n<pre>' + addTbl + '\n\n📊 Room count after update:\n' + cntTbl + '</pre>';
+  const addList = toAdd.map(s =>
+    `  ${n++}. ${s.name}  |  ID: ${s.id}  |  ${s.sex === 'M' ? 'Male' : 'Female'}`
+  ).join('\n');
+
+  const className = CLASS_NAMES[classId] || room.nameEn;
+  const cntLine = `${className}: សរុប ${rs.length} នាក់  (ប្រុស ${m} · ស្រី ${f})`;
+
+  const text = [
+    `🏫 <b>School Floor – Student Update</b>`,
+    `📍 ${building.nameEn} › ${floor.nameEn} › ${room.nameEn}`,
+    `✅ <b>សិស្សថ្មី ${toAdd.length} នាក់ត្រូវបានបន្ថែម</b>`,
+    `📅 ${dateAdded} at ${nowTime()}`,
+    `\n<b>សិស្សដែលបន្ថែម:</b>\n<pre>${addList}</pre>`,
+    `📊 <b>ចំនួនសិស្សក្នុងថ្នាក់:</b>\n<pre>  ${cntLine}</pre>`
+  ].join('\n');
+
   const r = await tgSend(text);
   if (r && r.ok) toast('📤 Sent to Telegram!', 'success');
 }
 
-async function sendTelegramRemove(s, room, floor, building) {
+// ── REMOVE: list format, counts from correct classId ──
+async function sendTelegramRemove(s, classId, room, floor, building) {
   const token = localStorage.getItem('tgToken') || tgToken;
   const chatId = localStorage.getItem('tgChatId') || tgChatId;
   if (!token || !chatId) return;
-  const classId = currentClassId || currentRoomId;
-  const rs = getRoomStudents(classId), m = rs.filter(x => x.sex === 'M').length, f = rs.filter(x => x.sex === 'F').length;
-  const tbl = buildTable(['Field','Detail'], [
-    ['Action','🚫 Student Removed'],['Name',s.name],['Student ID',s.id],
-    ['Sex',s.sex === 'M' ? 'Male' : 'Female'],['Room',room.nameEn],
-    ['Floor',floor.nameEn],['Building',building.nameEn],['Date',s.dateRemoved],['Time',nowTime()]
-  ]);
-  const cntTbl = buildTable(['Room','Total','Male','Female'], [[room.nameEn, String(rs.length), String(m), String(f)]]);
-  const text = ['🏫 <b>School Floor – Student Update</b>', building.nameEn + ' › ' + floor.nameEn + ' › ' + room.nameEn].join('\n')
-    + '\n<pre>' + tbl + '\n\n📊 Room count after update:\n' + cntTbl + '</pre>';
+
+  const rs = getRoomStudents(classId);
+  const m = rs.filter(x => x.sex === 'M').length;
+  const f = rs.filter(x => x.sex === 'F').length;
+
+  const className = CLASS_NAMES[classId] || room.nameEn;
+
+  const detail = [
+    `  សកម្មភាព : 🚫 លុបសិស្សចេញ`,
+    `  ឈ្មោះ     : ${s.name}`,
+    `  លេខID    : ${s.id}`,
+    `  ភេទ      : ${s.sex === 'M' ? 'ប្រុស (Male)' : 'ស្រី (Female)'}`,
+    `  ថ្នាក់     : ${className}`,
+    `  ជាន់      : ${floor.nameEn}`,
+    `  អគារ     : ${building.nameEn}`,
+    `  កាលបរិច្ឆេទ : ${s.dateRemoved}`,
+    `  ម៉ោង     : ${nowTime()}`,
+  ].join('\n');
+
+  const cntLine = `  ${className}: សរុប ${rs.length} នាក់  (ប្រុស ${m} · ស្រី ${f})`;
+
+  const text = [
+    `🏫 <b>School Floor – Student Update</b>`,
+    `📍 ${building.nameEn} › ${floor.nameEn} › ${room.nameEn}`,
+    `\n<pre>${detail}</pre>`,
+    `📊 <b>ចំនួនសិស្សក្នុងថ្នាក់:</b>\n<pre>${cntLine}</pre>`
+  ].join('\n');
+
   await tgSend(text);
 }
 
+// ── ROOM SUMMARY: list format ──
 async function sendRoomSummary() {
   const token = localStorage.getItem('tgToken') || tgToken;
   const chatId = localStorage.getItem('tgChatId') || tgChatId;
   if (!token || !chatId) { toast('Configure Telegram in Settings first', 'error'); return; }
+
   const classId = currentClassId || currentRoomId;
   const room = findRoom(currentRoomId), floor = findFloor(currentRoomId), building = findBuilding(currentRoomId);
-  const active = getRoomStudents(classId), m = active.filter(s => s.sex === 'M').length, f = active.filter(s => s.sex === 'F').length;
+  const active = getRoomStudents(classId);
+  const m = active.filter(s => s.sex === 'M').length;
+  const f = active.filter(s => s.sex === 'F').length;
+  const className = CLASS_NAMES[classId] || (room ? room.nameEn : classId);
+
   let n = 1;
-  const rows = active.map(s => [String(n++), s.name, s.id, s.sex === 'M' ? 'M' : 'F', s.dateAdded]);
-  const tbl = rows.length ? buildTable(['No','Name','ID','Sex','Date Added'], rows) : '(No students)';
-  const rName = room ? room.nameEn : classId;
-  const text = ['📊 <b>Room Summary: ' + rName + '</b>', (building ? building.nameEn : '') + ' › ' + (floor ? floor.nameEn : ''),
-    '📅 ' + today(), 'Total: <b>' + active.length + '</b> (' + m + ' Male, ' + f + ' Female)'].join('\n')
-    + '\n<pre>' + tbl + '</pre>';
+  const listLines = active.length
+    ? active.map(s => `  ${String(n++).padStart(2,' ')}. ${s.name}  |  ${s.id}  |  ${s.sex === 'M' ? 'M' : 'F'}  |  ${s.dateAdded}`).join('\n')
+    : '  (គ្មានសិស្ស)';
+
+  const text = [
+    `📊 <b>សង្ខេបថ្នាក់: ${className}</b>`,
+    `📍 ${building ? building.nameEn : ''} › ${floor ? floor.nameEn : ''}`,
+    `📅 ${today()}`,
+    `👥 សរុប: <b>${active.length} នាក់</b>  (ប្រុស ${m} · ស្រី ${f})`,
+    `\n<pre>${listLines}</pre>`
+  ].join('\n');
+
   const d = await tgSend(text);
   if (d && d.ok) toast('Room summary sent!', 'success');
 }
 
+// ── FULL SUMMARY: list format per room ──
 async function sendTelegramSummary() {
   const token = localStorage.getItem('tgToken') || tgToken;
   const chatId = localStorage.getItem('tgChatId') || tgChatId;
   if (!token || !chatId) { toast('Configure Telegram in Settings first', 'error'); return; }
-  let ta = 0, tm = 0, tf = 0; const bRows = [];
-  BUILDINGS.forEach(b => b.floors.forEach(f => f.rooms.forEach(r => {
-    const ids = (r.classes && r.classes.length) ? r.classes : (r.type !== 'null' ? [r.id] : []);
-    let rc = 0, rm = 0, rf = 0;
-    ids.forEach(cid => { const a = getRoomStudents(cid); rc += a.length; rm += a.filter(s => s.sex === 'M').length; rf += a.filter(s => s.sex === 'F').length; });
-    bRows.push([b.nameEn, f.nameEn, r.nameEn, String(rc), String(rm), String(rf)]);
-    ta += rc; tm += rm; tf += rf;
-  })));
-  bRows.push(['---','---','TOTAL', String(ta), String(tm), String(tf)]);
-  const tbl = buildTable(['Building','Floor','Room','Total','M','F'], bRows);
-  const text = ['📊 <b>School Floor – Full Summary</b>', '📅 Date: ' + today()].join('\n')
-    + '\n<pre>' + tbl + '</pre>\n<i>Sent from School Floor System</i>';
+
+  let lines = [];
+  let grandTotal = 0, grandM = 0, grandF = 0;
+
+  BUILDINGS.forEach(b => {
+    lines.push(`\n🏢 ${b.nameEn}`);
+    b.floors.forEach(f => {
+      lines.push(`  📂 ${f.nameEn}`);
+      f.rooms.forEach(r => {
+        const ids = (r.classes && r.classes.length) ? r.classes : (r.type !== 'null' ? [r.id] : []);
+        let rc = 0, rm = 0, rf = 0;
+        ids.forEach(cid => {
+          const a = getRoomStudents(cid);
+          rc += a.length; rm += a.filter(s => s.sex === 'M').length; rf += a.filter(s => s.sex === 'F').length;
+        });
+        grandTotal += rc; grandM += rm; grandF += rf;
+        lines.push(`    • ${r.nameEn}: ${rc} នាក់  (ប្រុស ${rm} · ស្រី ${rf})`);
+      });
+    });
+  });
+
+  lines.push(`\n━━━━━━━━━━━━━━━━━━━━`);
+  lines.push(`  សរុបទាំងអស់: ${grandTotal} នាក់  (ប្រុស ${grandM} · ស្រី ${grandF})`);
+
+  const text = [
+    `📊 <b>School Floor – Full Summary</b>`,
+    `📅 Date: ${today()}`,
+    `<pre>${lines.join('\n')}</pre>`,
+    `<i>Sent from School Floor System</i>`
+  ].join('\n');
+
   const d = await tgSend(text);
   if (d && d.ok) toast('Full summary sent!', 'success');
 }
 
+// ── TEST MESSAGE ──
 async function testTelegram() {
   const token  = document.getElementById('tg-token').value.trim();
   const chatId = document.getElementById('tg-chatid').value.trim();
@@ -1067,11 +1107,21 @@ async function testTelegram() {
     st.style.display = 'inline-block'; st.className = 'tg-status-pill tg-err'; st.textContent = 'Fill both fields';
     setTimeout(() => st.style.display = 'none', 3000); return;
   }
-  const tbl = buildTable(['Field','Detail'], [['Status','Connected OK'],['System','School Floor v3.2'],['Date',today()],['Time',nowTime()]]);
+  const detail = [
+    `  Status  : Connected OK`,
+    `  System  : School Floor v3.2`,
+    `  Date    : ${today()}`,
+    `  Time    : ${nowTime()}`,
+  ].join('\n');
+
   try {
     const res = await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: '🏫 <b>School Floor System – Connection Test</b>\n<pre>' + tbl + '</pre>\n<i>Telegram is working correctly!</i>', parse_mode: 'HTML' })
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: `🏫 <b>School Floor System – Connection Test</b>\n<pre>${detail}</pre>\n<i>Telegram is working correctly!</i>`,
+        parse_mode: 'HTML'
+      })
     });
     const data = await res.json(); st.style.display = 'inline-block';
     if (data.ok) { st.className = 'tg-status-pill tg-ok'; st.textContent = '✅ Sent!'; toast('Test sent! Check Telegram.', 'success'); }
