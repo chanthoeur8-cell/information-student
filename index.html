@@ -991,7 +991,8 @@ async function sendTelegramBulkAdd(toAdd, room, floor, building, dateAdded) {
   const token = localStorage.getItem('tgToken') || tgToken;
   const chatId = localStorage.getItem('tgChatId') || tgChatId;
   if (!token || !chatId) return;
-  const rs = getRoomStudents(room.id), m = rs.filter(s => s.sex === 'M').length, f = rs.filter(s => s.sex === 'F').length;
+  const classId = currentClassId || currentRoomId;
+  const rs = getRoomStudents(classId), m = rs.filter(s => s.sex === 'M').length, f = rs.filter(s => s.sex === 'F').length;
   let n = 1;
   const addTbl = buildTable(['No','Name','ID','Sex'], toAdd.map(s => [String(n++), s.name, s.id, s.sex === 'M' ? 'Male' : 'Female']));
   const cntTbl = buildTable(['Room','Total','Male','Female'], [[room.nameEn, String(rs.length), String(m), String(f)]]);
